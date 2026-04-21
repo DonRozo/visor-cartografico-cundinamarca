@@ -17,7 +17,7 @@ const normalizeText = (text?: string): string => {
     return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 };
 
-// [CORRECCIÓN QUIRÚRGICA] Función auxiliar para mapear temporalmente un LogicalDataset a un ArcGISItem.
+// Función auxiliar para mapear temporalmente un LogicalDataset a un ArcGISItem.
 // Solo permitimos convertir aquellos que tengan un Feature Service, garantizando
 // la compatibilidad con la lógica actual de agregar capas operativas al mapa.
 const mapLogicalDatasetToItem = (ld: LogicalDataset): ArcGISItem | null => {
@@ -54,18 +54,41 @@ const Catalog: React.FC<CatalogProps> = ({ data, isLoading, hasError, onAddLayer
         return data.featureServices || [];
     }, [data.logicalDatasets, data.featureServices]);
 
-    // Filtra dinámicamente los servicios según el término de búsqueda en título, resumen y descripción
+    // [CORRECCIÓN QUIRÚRGICA] Filtra dinámicamente controlando el ruido en términos cortos
     const filteredItems = useMemo(() => {
         if (!searchTerm) return sourceItems;
         
         const normalizedSearchTerm = normalizeText(searchTerm.trim());
+        const cleanSearchTerm = normalizedSearchTerm.replace(/[\s_\-]+/g, ' ');
+        const isShortSearch = normalizedSearchTerm.length <= 2;
 
         return sourceItems.filter(item => {
             const normalizedTitle = normalizeText(item.title);
+            
+            // --- 1. MEJORA DE COINCIDENCIA EN NOMBRES TÉCNICOS (TITLE) ---
+            // Separamos por espacios, guiones o guiones bajos
+            const titleWords = normalizedTitle.split(/[\s_\-]+/);
+            
+            // A) Coincidencia por prefijo (ej: "ad" encuentra "admin")
+            const matchesPrefix = titleWords.some(word => word.startsWith(normalizedSearchTerm));
+            
+            // B) Coincidencia general reemplazando separadores técnicos por espacios
+            const cleanTitle = normalizedTitle.replace(/[\s_\-]+/g, ' ');
+            const matchesSubstring = cleanTitle.includes(cleanSearchTerm);
+            
+            const matchesTitle = matchesPrefix || matchesSubstring;
+
+            // --- 2. REGLA PARA BÚSQUEDAS CORTAS (1 a 2 caracteres) ---
+            if (isShortSearch) {
+                // Solo buscamos en el título para evitar el ruido enorme de las descripciones
+                return matchesTitle;
+            }
+
+            // --- 3. REGLA PARA BÚSQUEDAS LARGAS (3 o más caracteres) ---
             const normalizedSnippet = normalizeText(item.snippet);
             const normalizedDescription = normalizeText(item.description);
 
-            return normalizedTitle.includes(normalizedSearchTerm) || 
+            return matchesTitle || 
                    normalizedSnippet.includes(normalizedSearchTerm) || 
                    normalizedDescription.includes(normalizedSearchTerm);
         });
