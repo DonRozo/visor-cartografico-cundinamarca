@@ -61,9 +61,9 @@ export async function fetchCatalogItems(): Promise<CatalogResponse> {
         const response = await esriRequest(SEARCH_QUERY_URL, { responseType: "json" });
         const allItems: ArcGISItem[] = response.data.results;
         
-        // [ADITIVO] Ejecutamos la agrupación lógica en memoria para validar que funcione.
-        // En la siguiente fase, se exportará o se incluirá en el retorno público.
-        void buildLogicalDatasets(allItems);
+        // [ADITIVO] Ejecutamos la agrupación lógica y guardamos el resultado.
+        // Ahora la exportamos en el retorno público para su uso futuro en la UI.
+        const logicalDatasets = buildLogicalDatasets(allItems);
         
         // [COMPATIBILIDAD] Mantenemos la estructura original exacta que App.tsx espera hoy
         const gdbIdLookup = new Map<string, string>();
@@ -80,8 +80,9 @@ export async function fetchCatalogItems(): Promise<CatalogResponse> {
             }
         });
 
-        // Retornamos estrictamente lo requerido por CatalogResponse para no romper la app pública
-        return { data: { featureServices, gdbIdLookup }, error: false };
+        // [ADITIVO] Retornamos la estructura original exigida para no romper la app,
+        // junto con la nueva colección agrupada de logicalDatasets.
+        return { data: { featureServices, gdbIdLookup, logicalDatasets }, error: false };
     } catch (error) {
         console.error("Error al buscar ítems en ArcGIS Online:", error);
         return { data: null, error: true };

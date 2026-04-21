@@ -16,6 +16,10 @@ export interface CatalogData {
     featureServices: ArcGISItem[];
     // Mapa que asocia el nombre base del servicio con el ID de su Geodatabase de descarga
     gdbIdLookup: Map<string, string>;
+    
+    // [ADITIVO] Colección opcional de datasets lógicos agrupados.
+    // Es opcional para garantizar total compatibilidad con la UI pública actual.
+    logicalDatasets?: LogicalDataset[];
 }
 
 // Interfaz para manejar la respuesta del servicio diferenciando errores de respuestas vacías

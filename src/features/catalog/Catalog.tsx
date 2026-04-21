@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import ItemCard from './ItemCard';
 import ItemDetail from './ItemDetail';
-import { CatalogData, ArcGISItem } from '../../types';
+import { CatalogData, ArcGISItem, LogicalDataset } from '../../types';
 
 // Definición estricta de las props que recibe desde App.tsx
 interface CatalogProps {
@@ -17,31 +17,59 @@ const normalizeText = (text?: string): string => {
     return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 };
 
+// [CORRECCIÓN QUIRÚRGICA] Función auxiliar para mapear temporalmente un LogicalDataset a un ArcGISItem.
+// Solo permitimos convertir aquellos que tengan un Feature Service, garantizando
+// la compatibilidad con la lógica actual de agregar capas operativas al mapa.
+const mapLogicalDatasetToItem = (ld: LogicalDataset): ArcGISItem | null => {
+    // Exigimos estrictamente que exista el Feature Service. 
+    // Ignoramos temporalmente los datasets que solo tienen Vector Tile o GDB.
+    if (!ld.featureService) return null;
+
+    return {
+        id: ld.featureService.id,
+        title: ld.title, // Usamos el título consolidado y limpio sin sufijos
+        type: ld.featureService.type,
+        url: ld.featureService.url,
+        thumbnail: ld.thumbnail,
+        snippet: ld.snippet,
+        description: ld.description
+    };
+};
+
 // Orquestador del panel lateral con manejo de estados visuales y búsqueda avanzada
 const Catalog: React.FC<CatalogProps> = ({ data, isLoading, hasError, onAddLayerToMap }) => {
-    // Estado para el término de búsqueda ingresado por el usuario
     const [searchTerm, setSearchTerm] = useState("");
-    // Estado para el elemento seleccionado (si es null, muestra la lista del catálogo)
     const [selectedItem, setSelectedItem] = useState<ArcGISItem | null>(null);
+
+    // Determinamos la fuente de datos unificada de forma progresiva.
+    // Si existen datasets lógicos los usamos, sino usamos la estructura legacy.
+    const sourceItems = useMemo(() => {
+        if (data.logicalDatasets && data.logicalDatasets.length > 0) {
+            return data.logicalDatasets
+                .map(mapLogicalDatasetToItem)
+                // Eliminamos los nulos (datasets sin Feature Service)
+                .filter((item): item is ArcGISItem => item !== null);
+        }
+        // Fallback robusto a la estructura original si la nueva no viene en los datos
+        return data.featureServices || [];
+    }, [data.logicalDatasets, data.featureServices]);
 
     // Filtra dinámicamente los servicios según el término de búsqueda en título, resumen y descripción
     const filteredItems = useMemo(() => {
-        if (!searchTerm) return data.featureServices;
+        if (!searchTerm) return sourceItems;
         
         const normalizedSearchTerm = normalizeText(searchTerm.trim());
 
-        return data.featureServices.filter(item => {
-            // Normalizamos los metadatos del item para compararlos
+        return sourceItems.filter(item => {
             const normalizedTitle = normalizeText(item.title);
             const normalizedSnippet = normalizeText(item.snippet);
             const normalizedDescription = normalizeText(item.description);
 
-            // Retorna true si el término de búsqueda existe en cualquiera de los 3 campos
             return normalizedTitle.includes(normalizedSearchTerm) || 
                    normalizedSnippet.includes(normalizedSearchTerm) || 
                    normalizedDescription.includes(normalizedSearchTerm);
         });
-    }, [searchTerm, data.featureServices]);
+    }, [searchTerm, sourceItems]);
 
     return (
         <div id="sidebar">
@@ -62,14 +90,14 @@ const Catalog: React.FC<CatalogProps> = ({ data, isLoading, hasError, onAddLayer
             )}
 
             {/* ESTADO 3: Catálogo vacío (la petición fue exitosa pero no hay elementos) */}
-            {!isLoading && !hasError && data.featureServices.length === 0 && (
+            {!isLoading && !hasError && sourceItems.length === 0 && (
                 <div className="status-message empty">
                     No se encontraron servicios en el catálogo.
                 </div>
             )}
 
             {/* VISTA PRINCIPAL: Muestra la barra de búsqueda y las tarjetas */}
-            {!isLoading && !hasError && data.featureServices.length > 0 && !selectedItem && (
+            {!isLoading && !hasError && sourceItems.length > 0 && !selectedItem && (
                 <>
                     <input 
                         type="text" 
@@ -101,6 +129,7 @@ const Catalog: React.FC<CatalogProps> = ({ data, isLoading, hasError, onAddLayer
             {!isLoading && selectedItem && (
                 <ItemDetail 
                     item={selectedItem} 
+                    // El título aquí ya está limpio y coincide con la llave en gdbIdLookup
                     gdbId={data.gdbIdLookup.get(selectedItem.title)} 
                     onBack={() => setSelectedItem(null)} 
                     onAdd={onAddLayerToMap} 
