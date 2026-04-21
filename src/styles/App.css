@@ -1,3 +1,6 @@
+/* [CORRECCIÓN QUIRÚRGICA] Importación de la fuente institucional aprobada */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
 /* ==========================================================================
    ESTILOS GENERALES Y LAYOUT ESTRUCTURAL
    ========================================================================== */
@@ -7,7 +10,8 @@ html, body, #root {
   height: 100vh;
   width: 100%;
   overflow: hidden;
-  font-family: 'Roboto Condensed', sans-serif;
+  /* [CORRECCIÓN QUIRÚRGICA] Aplicación global de la fuente Montserrat */
+  font-family: 'Montserrat', sans-serif;
   background-color: #f8fafc; /* Fondo neutro general */
 }
 
@@ -99,6 +103,7 @@ html, body, #root {
   width: 100%;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Limpieza del widget nativo */
   border-radius: 4px;
+  font-family: inherit; /* Hereda Montserrat internamente si la API lo permite */
 }
 
 /* ==========================================================================
@@ -106,7 +111,7 @@ html, body, #root {
    ========================================================================== */
 .main-layout {
   display: flex;
-  flex: 1; /* Ocupa el resto del alto de la pantalla */
+  flex: 1; /* Ocupa el espacio restante de la pantalla */
   position: relative;
   overflow: hidden;
 }
@@ -146,7 +151,7 @@ html, body, #root {
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   background-color: #f8fafc;
-  font-family: inherit;
+  font-family: inherit; /* Hereda Montserrat */
   font-size: 0.95rem;
   color: #334155;
   transition: all 0.2s ease;
@@ -191,7 +196,8 @@ html, body, #root {
 #card-container {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  /* [CORRECCIÓN QUIRÚRGICA] Ampliado a 20px para dar respiro al rotar en el eje Y */
+  gap: 20px; 
   padding-bottom: 20px;
 }
 
@@ -200,6 +206,15 @@ html, body, #root {
   height: 190px;
   perspective: 1000px;
   cursor: pointer;
+  /* [CORRECCIÓN QUIRÚRGICA] Definición de contexto de apilamiento base */
+  position: relative;
+  z-index: 1; 
+}
+
+/* [CORRECCIÓN QUIRÚRGICA] Al hacer hover, elevamos la tarjeta jerárquicamente 
+   para asegurar que su volumen 3D y sombra no invadan ni queden ocultos bajo la siguiente */
+.card:hover {
+  z-index: 10;
 }
 
 .card-inner {
@@ -320,6 +335,7 @@ html, body, #root {
   padding: 12px 20px;
   border: none;
   border-radius: 6px; /* Más moderno que el 'pill' redondo 100% */
+  font-family: inherit; /* Hereda Montserrat */
   font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
@@ -399,4 +415,5 @@ a.pill-button:hover {
 /* Asegurar que los widgets nativos de ArcGIS queden bajo nuestros modales si los hay */
 .esri-ui {
   z-index: 45;
+  font-family: inherit; /* Hereda Montserrat si la API lo permite */
 }
