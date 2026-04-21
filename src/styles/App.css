@@ -63,6 +63,23 @@ html, body, #root {
   margin-right: 40px; 
 }
 
+/* Botón menú hamburguesa (Oculto en escritorio) */
+.mobile-menu-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #134174;
+  cursor: pointer;
+  padding: 5px;
+  margin-right: 15px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.mobile-menu-btn:active {
+  background-color: #f1f5f9;
+}
+
 /* Logos institucionales con respiro y separadores */
 .logo-gov {
   height: 48px;
@@ -115,14 +132,22 @@ html, body, #root {
   overflow: hidden;
 }
 
+/* Envoltura Estructural del Sidebar (Actúa neutro en escritorio) */
+.sidebar-wrapper {
+  height: 100%;
+  display: flex;
+  flex-shrink: 0;
+  z-index: 60;
+}
+
 /* --- PANEL LATERAL IZQUIERDO (CATÁLOGO) --- */
 #sidebar {
   width: 360px;
+  height: 100%;
   background-color: #ffffff;
   border-right: 1px solid #e2e8f0;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.03); /* Sombra lateral suave */
   padding: 25px 20px;
-  z-index: 40;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -150,7 +175,7 @@ html, body, #root {
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   background-color: #f8fafc;
-  font-family: inherit; /* Hereda Montserrat */
+  font-family: inherit;
   font-size: 0.95rem;
   color: #334155;
   transition: all 0.2s ease;
@@ -359,7 +384,7 @@ html, body, #root {
   padding: 12px 20px;
   border: none;
   border-radius: 6px;
-  font-family: inherit; /* Hereda Montserrat */
+  font-family: inherit;
   font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
@@ -460,7 +485,7 @@ a.pill-button:hover {
 }
 
 .map-toolbar.bottom-right {
-  bottom: 30px; /* Sobre la atribución */
+  bottom: 30px;
 }
 
 /* Botones de Toolbar */
@@ -496,7 +521,7 @@ a.pill-button:hover {
 .floating-panel {
   position: absolute;
   top: 20px;
-  right: 80px; /* Separado del toolbar */
+  right: 80px; 
   width: 320px;
   max-height: calc(100% - 60px);
   background: white;
@@ -510,7 +535,6 @@ a.pill-button:hover {
   transition: opacity 0.3s, transform 0.3s;
 }
 
-/* Ocultar en lugar de desmontar para proteger el DOM de ArcGIS */
 .floating-panel.hidden {
   display: none;
 }
@@ -570,7 +594,6 @@ a.pill-button:hover {
   border-radius: 4px;
 }
 
-/* Integración armónica de los widgets nativos dentro del panel blanco */
 .floating-panel .esri-widget {
   box-shadow: none !important;
   background: transparent !important;
@@ -578,4 +601,146 @@ a.pill-button:hover {
 .floating-panel .esri-widget__heading {
   color: #1e293b;
   font-family: inherit;
+}
+
+/* ==========================================================================
+   9. RESPONSIVE Y ADAPTABILIDAD MÓVIL
+   ========================================================================== */
+
+/* Overlay oscuro activo en modo móvil */
+.mobile-overlay {
+  display: none; /* Se oculta por defecto en escritorio */
+}
+
+/* --- PUNTO DE QUIEBRE: TABLET Y MÓVIL (<= 900px) --- */
+@media screen and (max-width: 900px) {
+  
+  /* 1. Header se vuelve en formato columna para no aplastar elementos */
+  .institutional-header {
+    height: auto;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 15px 20px;
+    gap: 15px;
+  }
+
+  .header-left {
+    width: 100%;
+    margin-right: 0;
+  }
+
+  /* Mostrar botón menú hamburguesa */
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Ajuste de buscador para tomar ancho completo */
+  .header-search {
+    width: 100%;
+  }
+
+  .header-title {
+    font-size: 1.15rem;
+  }
+
+  .logo-gov { height: 40px; margin-right: 15px; }
+  .logo-idee { height: 32px; padding-left: 15px; margin-right: 15px; }
+
+  /* 2. Catálogo / Sidebar se vuelve Drawer flotante */
+  .sidebar-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 60;
+    /* Comienza fuera de la pantalla a la izquierda */
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Clase dinámica agregada por React cuando se abre en móvil */
+  .sidebar-wrapper.open {
+    transform: translateX(0);
+  }
+
+  #sidebar {
+    width: 85vw; /* Ocupa gran parte de la pantalla pero permite ver el mapa de fondo */
+    max-width: 360px;
+    box-shadow: 4px 0 15px rgba(0,0,0,0.15); /* Sombra intensa para indicar elevación */
+  }
+
+  /* 3. Overlay (Fondo oscuro al abrir el sidebar) */
+  .mobile-overlay {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(19, 65, 116, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 55;
+    cursor: pointer;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+/* --- PUNTO DE QUIEBRE: MÓVIL PEQUEÑO (<= 768px) --- */
+@media screen and (max-width: 768px) {
+  
+  /* Compactar más los logos para evitar desbordes */
+  .logo-gov { height: 35px; margin-right: 10px; }
+  .logo-idee { height: 26px; padding-left: 10px; margin-right: 10px; }
+  
+  .header-title {
+    font-size: 1rem;
+    white-space: normal; /* Permite salto de línea si es muy largo */
+  }
+
+  /* 4. Adaptación de Toolbars y Paneles del Mapa */
+  .map-toolbar {
+    right: 10px;
+  }
+
+  .map-toolbar.top-right {
+    top: 10px;
+  }
+
+  .map-toolbar.bottom-right {
+    bottom: 25px;
+  }
+
+  .toolbar-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* El panel flotante debe ajustar su ancho para no salir de pantalla */
+  .floating-panel {
+    right: 60px; /* Separado de la toolbar reducida */
+    top: 10px;
+    width: calc(100vw - 80px); /* Usa casi todo el espacio menos los márgenes y toolbars */
+    max-width: 320px;
+    max-height: 55vh; /* Evita tapar todo el mapa verticalmente */
+    padding: 15px;
+  }
+
+  .floating-panel h3 {
+    font-size: 1rem;
+  }
+}
+
+/* --- PUNTO DE QUIEBRE: MINI (<= 480px) --- */
+@media screen and (max-width: 480px) {
+  /* En pantallas minúsculas escondemos el título para priorizar escudos e input */
+  .header-title {
+    display: none;
+  }
 }
