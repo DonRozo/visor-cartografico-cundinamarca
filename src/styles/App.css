@@ -10,7 +10,7 @@ html, body, #root {
   height: 100vh;
   width: 100%;
   overflow: hidden;
-  /* [CORRECCIÓN QUIRÚRGICA] Aplicación global de la fuente Montserrat */
+  /* Aplicación global de la fuente Montserrat */
   font-family: 'Montserrat', sans-serif;
   background-color: #f8fafc; /* Fondo neutro general */
 }
@@ -191,12 +191,11 @@ html, body, #root {
 }
 
 /* ==========================================================================
-   4. TARJETAS DEL CATÁLOGO
+   4. TARJETAS DEL CATÁLOGO (ESTILO INSTITUCIONAL ESTÁTICO)
    ========================================================================== */
 #card-container {
   display: flex;
   flex-direction: column;
-  /* [CORRECCIÓN QUIRÚRGICA] Ampliado a 20px para dar respiro al rotar en el eje Y */
   gap: 20px; 
   padding-bottom: 20px;
 }
@@ -204,15 +203,12 @@ html, body, #root {
 .card {
   width: 100%;
   height: 190px;
-  perspective: 1000px;
   cursor: pointer;
-  /* [CORRECCIÓN QUIRÚRGICA] Definición de contexto de apilamiento base */
   position: relative;
   z-index: 1; 
 }
 
-/* [CORRECCIÓN QUIRÚRGICA] Al hacer hover, elevamos la tarjeta jerárquicamente 
-   para asegurar que su volumen 3D y sombra no invadan ni queden ocultos bajo la siguiente */
+/* Elevación jerárquica para que la sombra no quede pisada por la tarjeta inferior */
 .card:hover {
   z-index: 10;
 }
@@ -222,30 +218,30 @@ html, body, #root {
   width: 100%;
   height: 100%;
   text-align: center;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  transform-style: preserve-3d;
+  /* [CORRECCIÓN] Transición suave para el hover estático */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 8px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  /* [CORRECCIÓN] El overflow hidden encapsula el zoom de la imagen interior */
+  overflow: hidden; 
 }
 
+/* [CORRECCIÓN] Animación de hover estática: elevación y sombra marcada */
 .card:hover .card-inner {
-  transform: rotateY(180deg);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 20px -5px rgba(19, 65, 116, 0.15); /* Tono azul institucional en la sombra */
 }
 
-.card-front, .card-back {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  border-radius: 8px;
-  overflow: hidden;
+/* Ocultamos completamente la cara trasera para no alterar el DOM ni la lógica de React */
+.card-back {
+  display: none;
 }
 
 .card-front {
-  background-color: #ffffff;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -255,6 +251,13 @@ html, body, #root {
   height: 135px;
   object-fit: cover;
   border-bottom: 1px solid #f1f5f9;
+  /* [CORRECCIÓN] Transición para el efecto de zoom */
+  transition: transform 0.5s ease; 
+}
+
+/* [CORRECCIÓN] Zoom suave sobre la imagen al pasar el mouse por la tarjeta */
+.card:hover .card-front img {
+  transform: scale(1.05);
 }
 
 .card-front .card-title {
@@ -266,20 +269,13 @@ html, body, #root {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* [CORRECCIÓN] Transición de color en el título */
+  transition: color 0.3s ease;
 }
 
-/* Dorso de la tarjeta refinado con el color institucional */
-.card-back {
-  background-color: #134174;
-  color: #ffffff;
-  transform: rotateY(180deg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  text-align: left;
+/* Refuerzo visual del texto al hacer hover */
+.card:hover .card-front .card-title {
+  color: #134174;
 }
 
 /* ==========================================================================
