@@ -80,7 +80,7 @@ const App: React.FC = () => {
                         alt="IDEE / DIDEE" 
                         className="logo logo-idee" 
                     />
-                    <h1 className="header-title">Visor Geográfico de Cundinamarca</h1>
+                    <h1 className="header-title">Cartografía de Cundinamarca</h1>
                 </div>
                 
                 {/* Contenedor oficial del widget Search nativo de ArcGIS */}
