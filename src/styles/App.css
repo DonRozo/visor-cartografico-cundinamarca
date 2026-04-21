@@ -1,415 +1,150 @@
-/* [CORRECCIÓN QUIRÚRGICA] Importación de la fuente institucional aprobada */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
-
 /* ==========================================================================
-   ESTILOS GENERALES Y LAYOUT ESTRUCTURAL
+   8. NUEVOS CONTROLES CUSTOM DEL MAPA
    ========================================================================== */
-html, body, #root {
-  padding: 0;
-  margin: 0;
-  height: 100vh;
-  width: 100%;
-  overflow: hidden;
-  /* Aplicación global de la fuente Montserrat */
-  font-family: 'Montserrat', sans-serif;
-  background-color: #f8fafc; /* Fondo neutro general */
+
+/* Limpieza absoluta de la UI de ArcGIS (Nos quedamos solo con Atribución) */
+.esri-ui .esri-component {
+  display: none !important;
+}
+.esri-ui .esri-attribution {
+  display: block !important;
 }
 
-/* Contenedor maestro tipo aplicación de escritorio */
-.app-container {
+/* Toolbars Flotantes */
+.map-toolbar {
+  position: absolute;
+  right: 20px;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  width: 100%;
-}
-
-/* ==========================================================================
-   1. FRANJA SUPERIOR GOV.CO
-   ========================================================================== */
-.gov-co-bar {
-  background-color: #3366CC; /* Azul estándar oficial de GOV.CO */
-  height: 32px;
-  display: flex;
-  align-items: center;
-  padding: 0 30px;
-  flex-shrink: 0;
-}
-
-.gov-co-logo {
-  height: 18px; /* Proporción discreta y oficial */
-  object-fit: contain;
-}
-
-/* ==========================================================================
-   2. HEADER INSTITUCIONAL BLANCO
-   ========================================================================== */
-.institutional-header {
-  background-color: #ffffff;
-  height: 75px;
-  padding: 0 30px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); /* Sombra suave de elevación */
-  border-bottom: 3px solid #134174; /* Ancla de identidad visual Cundinamarca */
-  z-index: 100;
-  flex-shrink: 0;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  flex-grow: 1;
-  min-width: 0; 
-  margin-right: 40px; 
-}
-
-/* Logos institucionales con respiro y separadores */
-.logo-gov {
-  height: 48px;
-  margin-right: 20px;
-  flex-shrink: 0;
-  object-fit: contain;
-}
-
-.logo-idee {
-  height: 38px;
-  margin-right: 25px;
-  padding-left: 20px;
-  border-left: 1px solid #e2e8f0; /* Divisor sutil entre logos */
-  flex-shrink: 0;
-  object-fit: contain;
-}
-
-.header-title {
-  color: #134174;
-  font-size: 1.4rem;
-  margin: 0;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-}
-
-/* Contenedor del widget Search integrado al header */
-.header-search {
-  width: 320px;
-  flex-shrink: 0;
-}
-
-.header-search .esri-search {
-  width: 100%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Limpieza del widget nativo */
-  border-radius: 4px;
-  font-family: inherit; /* Hereda Montserrat internamente si la API lo permite */
-}
-
-/* ==========================================================================
-   3. ÁREA PRINCIPAL (CATÁLOGO + MAPA)
-   ========================================================================== */
-.main-layout {
-  display: flex;
-  flex: 1; /* Ocupa el espacio restante de la pantalla */
-  position: relative;
-  overflow: hidden;
-}
-
-/* --- PANEL LATERAL IZQUIERDO (CATÁLOGO) --- */
-#sidebar {
-  width: 360px;
-  background-color: #ffffff;
-  border-right: 1px solid #e2e8f0;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.03); /* Sombra lateral suave */
-  padding: 25px 20px;
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  flex-shrink: 0;
-  box-sizing: border-box;
-}
-
-#sidebar h2 {
-  color: #134174;
-  font-size: 1.25rem;
-  margin-top: 0;
-  margin-bottom: 20px;
-  font-weight: 700;
-  text-transform: uppercase;
-  border-bottom: 2px solid #f1f5f9;
-  padding-bottom: 12px;
-}
-
-/* Input de búsqueda refinado */
-#search-input {
-  width: 100%;
-  padding: 12px 15px;
-  margin-bottom: 20px;
-  box-sizing: border-box;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background-color: #f8fafc;
-  font-family: inherit; /* Hereda Montserrat */
-  font-size: 0.95rem;
-  color: #334155;
-  transition: all 0.2s ease;
-}
-
-#search-input:focus {
-  outline: none;
-  border-color: #134174;
-  box-shadow: 0 0 0 3px rgba(19, 65, 116, 0.1); /* Anillo de foco accesible */
-  background-color: #ffffff;
-}
-
-/* --- ESTADOS DEL CATÁLOGO --- */
-.status-message {
-  padding: 15px;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  text-align: center;
-  margin-bottom: 20px;
-  border: 1px solid transparent;
-}
-.status-message.loading {
-  background-color: #f1f5f9;
-  color: #475569;
-  border-color: #e2e8f0;
-}
-.status-message.error {
-  background-color: #fef2f2;
-  color: #b91c1c;
-  border-color: #fecaca;
-}
-.status-message.empty {
-  background-color: #f8fafc;
-  color: #64748b;
-  border-color: #e2e8f0;
-  font-style: italic;
-}
-
-/* ==========================================================================
-   4. TARJETAS DEL CATÁLOGO (ESTILO INSTITUCIONAL ESTÁTICO)
-   ========================================================================== */
-#card-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px; 
-  padding-bottom: 20px;
-}
-
-.card {
-  width: 100%;
-  height: 190px;
-  cursor: pointer;
-  position: relative;
-  z-index: 1; 
-}
-
-/* Elevación jerárquica para que la sombra no quede pisada por la tarjeta inferior */
-.card:hover {
-  z-index: 10;
-}
-
-.card-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  text-align: center;
-  /* [CORRECCIÓN] Transición suave para el hover estático */
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: white;
   border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   border: 1px solid #e2e8f0;
-  background-color: #ffffff;
-  /* [CORRECCIÓN] El overflow hidden encapsula el zoom de la imagen interior */
-  overflow: hidden; 
+  z-index: 50;
+  overflow: hidden;
 }
 
-/* [CORRECCIÓN] Animación de hover estática: elevación y sombra marcada */
-.card:hover .card-inner {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 20px -5px rgba(19, 65, 116, 0.15); /* Tono azul institucional en la sombra */
+.map-toolbar.top-right {
+  top: 20px;
 }
 
-/* Ocultamos completamente la cara trasera para no alterar el DOM ni la lógica de React */
-.card-back {
+.map-toolbar.bottom-right {
+  bottom: 30px; /* Sobre la atribución */
+}
+
+/* Botones de Toolbar */
+.toolbar-btn {
+  background: transparent;
+  border: none;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #1e293b;
+  border-bottom: 1px solid #f1f5f9;
+  transition: all 0.2s;
+}
+
+.toolbar-btn:last-child {
+  border-bottom: none;
+}
+
+.toolbar-btn:hover {
+  background-color: #f8fafc;
+  color: #134174;
+}
+
+.toolbar-btn.active {
+  background-color: #134174;
+  color: white;
+}
+
+/* Paneles Flotantes de Contenido */
+.floating-panel {
+  position: absolute;
+  top: 20px;
+  right: 80px; /* Separado del toolbar */
+  width: 320px;
+  max-height: calc(100% - 60px);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  border: 1px solid #e2e8f0;
+  z-index: 50;
+  overflow-y: auto;
+  padding: 20px;
+  box-sizing: border-box;
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+/* Ocultar en lugar de desmontar para proteger el DOM de ArcGIS */
+.floating-panel.hidden {
   display: none;
 }
 
-.card-front {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+.floating-panel.visible {
+  display: block;
 }
 
-.card-front img {
-  width: 100%;
-  height: 135px;
-  object-fit: cover;
-  border-bottom: 1px solid #f1f5f9;
-  /* [CORRECCIÓN] Transición para el efecto de zoom */
-  transition: transform 0.5s ease; 
-}
-
-/* [CORRECCIÓN] Zoom suave sobre la imagen al pasar el mouse por la tarjeta */
-.card:hover .card-front img {
-  transform: scale(1.05);
-}
-
-.card-front .card-title {
-  padding: 12px 15px;
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: #1e293b;
-  text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  /* [CORRECCIÓN] Transición de color en el título */
-  transition: color 0.3s ease;
-}
-
-/* Refuerzo visual del texto al hacer hover */
-.card:hover .card-front .card-title {
-  color: #134174;
-}
-
-/* ==========================================================================
-   5. PANEL DE DETALLE (METADATOS)
-   ========================================================================== */
-#detail-pane {
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 20px;
-}
-
-.detail-thumbnail {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-#detail-pane h3 {
-  color: #1e293b;
+.floating-panel h3 {
   margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1.3;
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+  color: #134174;
+  border-bottom: 2px solid #f1f5f9;
+  padding-bottom: 10px;
 }
 
-.detail-description {
-  font-size: 0.95rem;
-  line-height: 1.6;
+.tool-section {
+  margin-bottom: 20px;
+}
+
+.tool-section h4 {
+  margin: 0 0 10px 0;
+  font-size: 0.9rem;
   color: #475569;
-  padding: 15px;
-  background-color: #f8fafc;
-  border-left: 4px solid #134174;
-  border-radius: 0 6px 6px 0;
-  margin: 0 0 20px 0;
 }
 
-/* ==========================================================================
-   6. BOTONES (JERARQUÍA Y ESTILOS)
-   ========================================================================== */
-.metadata-buttons {
+.panel-msg {
+  font-size: 0.9rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.panel-msg.success {
+  color: #059669;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+/* Componentes menores de Herramientas */
+.measure-btns {
   display: flex;
-  flex-direction: column;
   gap: 10px;
+  margin-bottom: 10px;
 }
 
-/* Botón base */
-.pill-button {
-  padding: 12px 20px;
-  border: none;
-  border-radius: 6px; /* Más moderno que el 'pill' redondo 100% */
-  font-family: inherit; /* Hereda Montserrat */
-  font-size: 0.95rem;
-  font-weight: 700;
-  cursor: pointer;
-  text-decoration: none;
-  text-align: center;
-  transition: all 0.2s ease;
+.pill-button.small {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+}
+
+.file-input {
   width: 100%;
-  box-sizing: border-box;
+  font-size: 0.85rem;
+  padding: 8px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 4px;
 }
 
-/* Botón Principal (Añadir al mapa) */
-.pill-button {
-  background-color: #134174;
-  color: #ffffff;
-  box-shadow: 0 2px 4px rgba(19, 65, 116, 0.2);
+/* Integración armónica de los widgets nativos dentro del panel blanco */
+.floating-panel .esri-widget {
+  box-shadow: none !important;
+  background: transparent !important;
 }
-
-.pill-button:hover {
-  background-color: #0f345e;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(19, 65, 116, 0.3);
-}
-
-/* Botón Secundario (Volver) */
-.pill-button.secondary {
-  background-color: #f1f5f9; 
-  color: #475569;
-  box-shadow: none;
-  border: 1px solid #cbd5e1;
-}
-
-.pill-button.secondary:hover {
-  background-color: #e2e8f0;
+.floating-panel .esri-widget__heading {
   color: #1e293b;
-  transform: translateY(-1px);
-}
-
-/* Botón Terciario/Acción (Descargar GDB) - Diferenciado visualmente */
-a.pill-button {
-  background-color: #0ea5e9; /* Azul más vibrante/técnico para descargas */
-  box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);
-}
-
-a.pill-button:hover {
-  background-color: #0284c7;
-}
-
-/* ==========================================================================
-   7. ÁREA DE MAPA Y CONTROLES FLOTANTES
-   ========================================================================== */
-.map-wrapper {
-  flex: 1; /* Ocupa el espacio restante junto al sidebar */
-  position: relative;
-  display: flex;
-}
-
-#viewDiv {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.floating-controls-container {
-  position: absolute;
-  right: 15px;
-  top: 15px;
-  width: 45px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  z-index: 50; /* Por encima del mapa */
-  /* El diseño de los botones flotantes se inyectará aquí a futuro */
-}
-
-/* Asegurar que los widgets nativos de ArcGIS queden bajo nuestros modales si los hay */
-.esri-ui {
-  z-index: 45;
-  font-family: inherit; /* Hereda Montserrat si la API lo permite */
+  font-family: inherit;
 }
