@@ -1,4 +1,3 @@
-// [CORRECCIÓN] Importamos WebMap en lugar del Map básico
 import WebMap from "@arcgis/core/WebMap";
 import MapView from "@arcgis/core/views/MapView";
 import esriRequest from "@arcgis/core/request";
@@ -50,9 +49,8 @@ export function initializeMap(container: HTMLDivElement): {
         map: map,
         center: initialCenter,
         zoom: initialZoom,
-        // [CORRECCIÓN QUIRÚRGICA] Eliminamos por completo el padding lateral (padding: { left: 360 }).
-        // Dado que ahora usamos Flexbox, el mapa ocupa el 100% de su contenedor de forma dinámica,
-        // evitando que en pantallas móviles la "cámara" sea empujada fuera de la pantalla.
+        // [CORRECCIÓN FINAL] Garantía estricta de que el mapa NO usa padding residual
+        // y se ajusta dinámicamente al 100% del contenedor Flexbox, esencial en móvil.
         ui: { components: ["attribution"] } 
     });
 
@@ -88,14 +86,11 @@ export function initializeMap(container: HTMLDivElement): {
     view.watch("stationary", (isStationary) => {
         if (isStationary) {
             if (!isNavigatingHistory) {
-                // Si el usuario se movió por su cuenta, guardamos el nuevo extent
                 const newExtent = view.extent.clone();
-                // Recortamos el futuro si el usuario hizo "deshacer" y luego se movió a otro lado
                 extentHistory = extentHistory.slice(0, currentIndex + 1);
                 extentHistory.push(newExtent);
                 currentIndex++;
             }
-            // Liberamos el flag para futuros movimientos
             isNavigatingHistory = false;
         }
     });
@@ -109,11 +104,9 @@ export function initializeMap(container: HTMLDivElement): {
     };
 
     const zoomHome = () => {
-        // Obtenemos el extent original guardado en el WebMap
         if (map.portalItem && map.portalItem.extent) {
             view.goTo(map.portalItem.extent);
         } else {
-            // Fallback seguro
             view.goTo({ center: [-74.08175, 4.60971], zoom: 8 });
         }
     };

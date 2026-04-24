@@ -89,8 +89,6 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
     };
 
     const handleShare = () => {
-        // [CORRECCIÓN QUIRÚRGICA] Validación defensiva estricta para TypeScript.
-        // Extraemos 'center' y validamos explícitamente que 'longitude' y 'latitude' existan.
         const view = viewRef.current;
         const center = view?.center;
         
@@ -104,7 +102,6 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
             setShareMessage("¡Enlace copiado al portapapeles!");
             setTimeout(() => setShareMessage(""), 3000);
         } else {
-            // Manejo silencioso en caso de que el mapa aún no haya calculado las coordenadas geográficas
             setShareMessage("Obteniendo coordenadas, intente de nuevo...");
             setTimeout(() => setShareMessage(""), 3000);
         }
@@ -123,9 +120,11 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
     const IconHome = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
 
     return (
-        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        // [CORRECCIÓN QUIRÚRGICA] Se añadió className y propiedades flex explícitas para
+        // garantizar que el árbol del DOM herede la altura 100% y evite el colapso en WebKit/móvil
+        <div className="map-component-root" style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
             {/* Div del mapa de ArcGIS */}
-            <div id="viewDiv" ref={mapDiv}></div>
+            <div id="viewDiv" ref={mapDiv} style={{ flex: 1, width: '100%', position: 'relative' }}></div>
 
             {/* CONTENEDOR SUPERIOR DERECHO (HERRAMIENTAS) */}
             <div className="map-toolbar top-right">
@@ -145,21 +144,16 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
             </div>
 
             {/* PANELES COLAPSABLES (Ocultos con CSS para proteger el ciclo de vida del DOM) */}
-            
-            {/* Panel: Herramientas */}
             <div className={`map-panel floating-panel ${activePanel === 'tools' ? 'visible' : 'hidden'}`}>
                 <h3>Herramientas</h3>
-                
                 <div className="tool-section">
                     <h4>Imprimir Mapa</h4>
                     {PRINT_SERVICE_URL ? <div ref={printRef}></div> : <p className="panel-msg">Servicio de impresión no configurado.</p>}
                 </div>
-
                 <div className="tool-section">
                     <h4>Importar Datos (GeoJSON)</h4>
                     <input type="file" accept=".geojson,.json" onChange={handleFileUpload} className="file-input" />
                 </div>
-
                 <div className="tool-section">
                     <h4>Medición</h4>
                     <div className="measure-btns">
@@ -169,12 +163,10 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                     </div>
                     <div ref={measureRef} className="measure-container"></div>
                 </div>
-
                 <div className="tool-section">
                     <h4>Dibujo</h4>
                     <div ref={sketchRef}></div>
                 </div>
-
                 <div className="tool-section">
                     <h4>Compartir</h4>
                     <button className="pill-button" onClick={handleShare}>Copiar Enlace del Mapa</button>
@@ -210,7 +202,6 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                     oficiales de la plataforma institucional.
                 </p>
             </div>
-
         </div>
     );
 };
