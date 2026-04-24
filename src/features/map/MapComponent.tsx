@@ -175,7 +175,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
     return (
         <div className="map-component-root" style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
             {/* Div del mapa de ArcGIS */}
-            <div id="viewDiv" ref={mapDiv} style={{ flex: 1, width: '100%', position: 'relative' }}></div>
+            <div id="viewDiv" ref={mapDiv} style={{ height: '500px', width: '100%', backgroundColor: 'red', position: 'relative', flex: 'none' }}></div>
 
             {/* CONTENEDOR SUPERIOR DERECHO (HERRAMIENTAS) */}
             <div className="map-toolbar top-right">
