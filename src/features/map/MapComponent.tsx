@@ -36,13 +36,12 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         let stabilityTimeout: ReturnType<typeof setTimeout> | null = null;
         let isInitialized = false;
 
-        // Función que intenta inicializar el mapa.
         const attemptInitialization = () => {
             if (!mapDiv.current || isInitialized) return;
 
             const { offsetWidth, offsetHeight } = mapDiv.current;
             
-            // Verificamos que el contenedor tenga tamaño útil real (>0)
+            // Solo inicializa si el layout ya resolvió dimensiones reales > 0
             if (offsetWidth > 0 && offsetHeight > 0) {
                 isInitialized = true; 
                 
@@ -54,7 +53,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                 setZoomPreFn(() => zoomPre);
                 setZoomHomeFn(() => zoomHome);
 
-                // Montamos los widgets en los refs tan pronto inicialicen
+                // Montamos los widgets en los refs
                 if (layerListRef.current) widgets.layerList.container = layerListRef.current;
                 if (legendRef.current) widgets.legend.container = legendRef.current;
                 if (basemapRef.current) widgets.basemapGallery.container = basemapRef.current;
@@ -62,7 +61,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                 if (sketchRef.current) widgets.sketch.container = sketchRef.current;
                 if (measureRef.current) widgets.measurement.container = measureRef.current;
 
-                // Una vez inicializado, desconectamos el observador
+                // Desconectamos el observer una vez el mapa está asegurado
                 if (resizeObserver) {
                     resizeObserver.disconnect();
                 }
@@ -70,7 +69,6 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         };
 
         if (mapDiv.current) {
-            // Usamos ResizeObserver para detectar la estabilidad del layout
             resizeObserver = new ResizeObserver(() => {
                 if (isInitialized) return;
 
@@ -78,7 +76,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                     clearTimeout(stabilityTimeout);
                 }
 
-                // Esperamos 300ms de absoluta estabilidad en el tamaño
+                // Debounce de estabilización: 300ms
                 stabilityTimeout = setTimeout(() => {
                     attemptInitialization();
                 }, 300);
@@ -103,7 +101,6 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         };
     }, []);
 
-    // Reacción al trigger de añadir capas
     useEffect(() => {
         if (layerTrigger && mapRef.current && viewRef.current) {
             addLayerToMap(mapRef.current, viewRef.current, layerTrigger.item);
@@ -114,11 +111,9 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         setActivePanel(prev => prev === panel ? null : panel);
     };
 
-    // Navegación
     const handleZoomIn = () => viewRef.current?.goTo({ zoom: (viewRef.current.zoom || 0) + 1 });
     const handleZoomOut = () => viewRef.current?.goTo({ zoom: (viewRef.current.zoom || 0) - 1 });
 
-    // Medición
     const handleMeasure = (type: "distance" | "area") => {
         if (widgetsRef.current) widgetsRef.current.measurement.activeTool = type;
     };
@@ -126,7 +121,6 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         if (widgetsRef.current) widgetsRef.current.measurement.clear();
     };
     
-    // Importación GeoJSON
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file && mapRef.current && viewRef.current) {
@@ -135,7 +129,6 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         }
     };
 
-    // Compartir mapa
     const handleShare = () => {
         const view = viewRef.current;
         const center = view?.center as any;
@@ -167,14 +160,13 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
     const IconHome = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
 
     return (
-        // [CORRECCIÓN QUIRÚRGICA] Abandonamos el uso de 'flex: 1' para el tamaño del mapa.
-        // En navegadores móviles (Safari/Chrome), los hijos flex a veces colapsan su altura.
-        // Al usar position absolute (top, bottom, left, right a 0), anclamos las cuatro esquinas 
-        // del contenedor a su padre (.map-wrapper), forzando el 100% de tamaño real de forma infalible.
-        <div className="map-component-root" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+        // [CORRECCIÓN DEFINITIVA] Devolvemos `.map-component-root` al flujo Flexbox normal.
+        // Al usar `flex: 1` y `height: 100%`, garantizamos que el layout padre nunca colapse a 0px.
+        <div className="map-component-root" style={{ flex: 1, width: '100%', height: '100%', position: 'relative' }}>
             
-            {/* Div del mapa de ArcGIS con 100% estricto */}
-            <div id="viewDiv" ref={mapDiv} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}></div>
+            {/* El mapa (#viewDiv) es el único elemento con anclaje absoluto estricto a las 4 esquinas.
+                De esta forma se estira por dentro del layout seguro sin importar el dispositivo. */}
+            <div id="viewDiv" ref={mapDiv} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}></div>
 
             {/* CONTENEDOR SUPERIOR DERECHO (HERRAMIENTAS) */}
             <div className="map-toolbar top-right">
