@@ -34,26 +34,31 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
     useEffect(() => {
         let resizeObserver: ResizeObserver | null = null;
         let stabilityTimeout: ReturnType<typeof setTimeout> | null = null;
+        let delayedInitTimeout: ReturnType<typeof setTimeout> | null = null;
+        let rafId: number | null = null;
         let isInitialized = false;
 
+        // Intenta inicializar el mapa solo cuando el contenedor tenga
+        // tamaño útil real y estable. Esto evita que el WebMap nazca
+        // demasiado temprano en navegadores móviles.
         const attemptInitialization = () => {
             if (!mapDiv.current || isInitialized) return;
 
             const { offsetWidth, offsetHeight } = mapDiv.current;
-            
-            // Verificamos que el contenedor tenga tamaño útil y estable resuelto por CSS flexbox
+
+            // Solo procedemos si el contenedor ya tiene geometría útil.
             if (offsetWidth > 0 && offsetHeight > 0) {
-                isInitialized = true; 
-                
+                isInitialized = true;
+
                 const { map, view, widgets, zoomPre, zoomHome } = initializeMap(mapDiv.current);
-                
+
                 mapRef.current = map;
                 viewRef.current = view;
                 widgetsRef.current = widgets;
                 setZoomPreFn(() => zoomPre);
                 setZoomHomeFn(() => zoomHome);
 
-                // Montamos los widgets en los refs tan pronto inicialicen
+                // Montamos los widgets en sus contenedores React.
                 if (layerListRef.current) widgets.layerList.container = layerListRef.current;
                 if (legendRef.current) widgets.legend.container = legendRef.current;
                 if (basemapRef.current) widgets.basemapGallery.container = basemapRef.current;
@@ -61,32 +66,56 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                 if (sketchRef.current) widgets.sketch.container = sketchRef.current;
                 if (measureRef.current) widgets.measurement.container = measureRef.current;
 
+                // Una vez inicializado correctamente, ya no necesitamos observar.
                 if (resizeObserver) {
                     resizeObserver.disconnect();
                 }
             }
         };
 
+        // Programa el intento de inicialización con una espera corta para
+        // confirmar estabilidad del layout antes de crear el MapView.
+        const scheduleInitialization = () => {
+            if (isInitialized) return;
+
+            if (stabilityTimeout) {
+                clearTimeout(stabilityTimeout);
+            }
+
+            stabilityTimeout = setTimeout(() => {
+                attemptInitialization();
+            }, 350);
+        };
+
         if (mapDiv.current) {
+            // Observa cambios reales de tamaño del contenedor del mapa.
             resizeObserver = new ResizeObserver(() => {
-                if (isInitialized) return;
-
-                if (stabilityTimeout) {
-                    clearTimeout(stabilityTimeout);
-                }
-
-                // Debounce para asegurar que el tamaño es final en móvil antes de instanciar
-                stabilityTimeout = setTimeout(() => {
-                    attemptInitialization();
-                }, 300);
+                scheduleInitialization();
             });
-            
+
             resizeObserver.observe(mapDiv.current);
+
+            // Disparo inicial adicional: en algunos móviles el observer no emite
+            // inmediatamente aunque el contenedor ya exista.
+            rafId = window.requestAnimationFrame(() => {
+                scheduleInitialization();
+            });
+
+            // Segundo intento de seguridad después del primer reflow del layout.
+            delayedInitTimeout = setTimeout(() => {
+                scheduleInitialization();
+            }, 500);
         }
-        
+
         return () => {
             if (stabilityTimeout) {
                 clearTimeout(stabilityTimeout);
+            }
+            if (delayedInitTimeout) {
+                clearTimeout(delayedInitTimeout);
+            }
+            if (rafId !== null) {
+                cancelAnimationFrame(rafId);
             }
             if (resizeObserver) {
                 resizeObserver.disconnect();
@@ -100,6 +129,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         };
     }, []);
 
+    // Reacción al trigger de añadir capas desde el catálogo
     useEffect(() => {
         if (layerTrigger && mapRef.current && viewRef.current) {
             addLayerToMap(mapRef.current, viewRef.current, layerTrigger.item);
@@ -110,16 +140,20 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         setActivePanel(prev => prev === panel ? null : panel);
     };
 
+    // Funciones de navegación
     const handleZoomIn = () => viewRef.current?.goTo({ zoom: (viewRef.current.zoom || 0) + 1 });
     const handleZoomOut = () => viewRef.current?.goTo({ zoom: (viewRef.current.zoom || 0) - 1 });
 
+    // Lógica de herramientas de medición
     const handleMeasure = (type: "distance" | "area") => {
         if (widgetsRef.current) widgetsRef.current.measurement.activeTool = type;
     };
+
     const handleClearMeasure = () => {
         if (widgetsRef.current) widgetsRef.current.measurement.clear();
     };
-    
+
+    // Lógica de importación GeoJSON
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file && mapRef.current && viewRef.current) {
@@ -128,15 +162,16 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         }
     };
 
+    // Lógica para compartir mapa (URL con parámetros)
     const handleShare = () => {
         const view = viewRef.current;
         const center = view?.center as any;
-        
+
         if (view && center && center.longitude != null && center.latitude != null) {
             const lon = center.longitude.toFixed(5);
             const lat = center.latitude.toFixed(5);
-            const z = Math.round(view.zoom || 8); 
-            
+            const z = Math.round(view.zoom || 8);
+
             const shareUrl = `${window.location.origin}${window.location.pathname}?lon=${lon}&lat=${lat}&z=${z}`;
             navigator.clipboard.writeText(shareUrl);
             setShareMessage("¡Enlace copiado al portapapeles!");
@@ -147,24 +182,80 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         }
     };
 
-    const IconTools = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>;
-    const IconLayers = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>;
-    const IconLegend = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>;
-    const IconBasemap = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="21"></line></svg>;
-    const IconInfo = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>;
-    const IconPlus = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
-    const IconMinus = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
-    const IconUndo = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>;
-    const IconHome = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
+    const IconTools = () => (
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+        </svg>
+    );
+
+    const IconLayers = () => (
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+        </svg>
+    );
+
+    const IconLegend = () => (
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+        </svg>
+    );
+
+    const IconBasemap = () => (
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="3" y1="9" x2="21" y2="9"></line>
+            <line x1="9" y1="21" x2="9" y2="21"></line>
+        </svg>
+    );
+
+    const IconInfo = () => (
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+    );
+
+    const IconPlus = () => (
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+    );
+
+    const IconMinus = () => (
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+    );
+
+    const IconUndo = () => (
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
+            <polyline points="11 17 6 12 11 7"></polyline>
+            <polyline points="18 17 13 12 18 7"></polyline>
+        </svg>
+    );
+
+    const IconHome = () => (
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+    );
 
     return (
-        // [SOLUCIÓN RESPONSIVE DEFINITIVA] 
-        // 1. `.map-component-root` hereda el flex padre.
-        <div className="map-component-root" style={{ display: 'flex', flexDirection: 'column', flex: 1, position: 'relative' }}>
-            
-            {/* 2. El lienzo del mapa asume un rol pasivo 'flex: 1' limpio.
-                Al depender enteramente de las cadenas Flexbox bien conformadas en App.css,
-                el colapso de tamaño en iOS/Safari ya no se presentará y no requiere de pixeles forzados. */}
+        <div
+            className="map-component-root"
+            style={{ position: 'relative', display: 'flex', flexDirection: 'column', flex: 1 }}
+        >
+            {/* Lienzo del mapa limpio, sin color rojo ni altura fija. */}
             <div id="viewDiv" ref={mapDiv} style={{ flex: 1, width: '100%', position: 'relative' }}></div>
 
             {/* CONTENEDOR SUPERIOR DERECHO (HERRAMIENTAS) */}
@@ -187,14 +278,17 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
             {/* PANELES COLAPSABLES */}
             <div className={`map-panel floating-panel ${activePanel === 'tools' ? 'visible' : 'hidden'}`}>
                 <h3>Herramientas</h3>
+
                 <div className="tool-section">
                     <h4>Imprimir Mapa</h4>
                     {PRINT_SERVICE_URL ? <div ref={printRef}></div> : <p className="panel-msg">Servicio de impresión no configurado.</p>}
                 </div>
+
                 <div className="tool-section">
                     <h4>Importar Datos (GeoJSON)</h4>
                     <input type="file" accept=".geojson,.json" onChange={handleFileUpload} className="file-input" />
                 </div>
+
                 <div className="tool-section">
                     <h4>Medición</h4>
                     <div className="measure-btns">
@@ -204,10 +298,12 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                     </div>
                     <div ref={measureRef} className="measure-container"></div>
                 </div>
+
                 <div className="tool-section">
                     <h4>Dibujo</h4>
                     <div ref={sketchRef}></div>
                 </div>
+
                 <div className="tool-section">
                     <h4>Compartir</h4>
                     <button className="pill-button" onClick={handleShare}>Copiar Enlace del Mapa</button>
@@ -233,9 +329,9 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
             <div className={`map-panel floating-panel ${activePanel === 'info' ? 'visible' : 'hidden'}`}>
                 <h3>Información del Visor</h3>
                 <p className="panel-msg">
-                    <strong>Visor Geográfico de Cundinamarca</strong><br/><br/>
+                    <strong>Cartografía de Cundinamarca</strong><br /><br />
                     Esta herramienta permite explorar la cartografía oficial del departamento.
-                    El catálogo de la izquierda está conectado dinámicamente con los servicios operativos 
+                    El catálogo de la izquierda está conectado dinámicamente con los servicios operativos
                     oficiales de la plataforma institucional.
                 </p>
             </div>
