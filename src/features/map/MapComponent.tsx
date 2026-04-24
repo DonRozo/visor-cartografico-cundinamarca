@@ -32,6 +32,25 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
     const [shareMessage, setShareMessage] = useState<string>("");
 
     useEffect(() => {
+        // Variables para manejo de memoria y listeners responsive
+        let resizeTimeout: ReturnType<typeof setTimeout>;
+        let resizeObserver: ResizeObserver | null = null;
+
+        // Lógica centralizada para forzar repintado del mapa en móvil.
+        const forceMapResize = () => {
+            if (resizeTimeout) clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (viewRef.current) {
+                    requestAnimationFrame(() => {
+                        if (viewRef.current) {
+                            viewRef.current.resize(); 
+                            viewRef.current.requestRender(); 
+                        }
+                    });
+                }
+            }, 150); 
+        };
+
         if (mapDiv.current && !mapRef.current) {
             const { map, view, widgets, zoomPre, zoomHome } = initializeMap(mapDiv.current);
             mapRef.current = map;
@@ -47,9 +66,37 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
             if (printRef.current && PRINT_SERVICE_URL) widgets.print.container = printRef.current;
             if (sketchRef.current) widgets.sketch.container = sketchRef.current;
             if (measureRef.current) widgets.measurement.container = measureRef.current;
+
+            // --- [INICIO EVENTOS RESPONSIVE] ---
+            setTimeout(forceMapResize, 300);
+            setTimeout(forceMapResize, 800); 
+
+            window.addEventListener('resize', forceMapResize);
+            window.addEventListener('orientationchange', forceMapResize);
+
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', forceMapResize);
+            }
+
+            resizeObserver = new ResizeObserver(() => {
+                forceMapResize();
+            });
+            resizeObserver.observe(mapDiv.current);
+            // --- [FIN EVENTOS RESPONSIVE] ---
         }
         
         return () => {
+            if (resizeTimeout) clearTimeout(resizeTimeout);
+            window.removeEventListener('resize', forceMapResize);
+            window.removeEventListener('orientationchange', forceMapResize);
+            
+            if (window.visualViewport) {
+                window.visualViewport.removeEventListener('resize', forceMapResize);
+            }
+            if (resizeObserver) {
+                resizeObserver.disconnect();
+            }
+
             if (viewRef.current) {
                 viewRef.current.destroy();
                 viewRef.current = null;
@@ -90,7 +137,10 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
 
     const handleShare = () => {
         const view = viewRef.current;
-        const center = view?.center;
+        // [CORRECCIÓN QUIRÚRGICA] Casteamos explícitamente a 'any' para silenciar el 
+        // falso positivo del linter de TypeScript, ya que en tiempo de ejecución 
+        // las propiedades longitude y latitude sí existen.
+        const center: any = view?.center;
         
         if (view && center && center.longitude != null && center.latitude != null) {
             const lon = center.longitude.toFixed(5);
@@ -120,8 +170,6 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
     const IconHome = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
 
     return (
-        // [CORRECCIÓN QUIRÚRGICA] Se añadió className y propiedades flex explícitas para
-        // garantizar que el árbol del DOM herede la altura 100% y evite el colapso en WebKit/móvil
         <div className="map-component-root" style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
             {/* Div del mapa de ArcGIS */}
             <div id="viewDiv" ref={mapDiv} style={{ flex: 1, width: '100%', position: 'relative' }}></div>
