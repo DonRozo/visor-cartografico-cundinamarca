@@ -7,7 +7,9 @@
 html, body, #root {
   padding: 0;
   margin: 0;
+  /* [CORRECCIÓN] Fallback inicial y uso de Dynamic Viewport para móviles */
   height: 100vh;
+  height: 100dvh; 
   width: 100%;
   overflow: hidden;
   font-family: 'Montserrat', sans-serif;
@@ -19,6 +21,7 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh; /* [CORRECCIÓN] Evita que la barra de direcciones esconda contenido */
   width: 100%;
 }
 
@@ -439,7 +442,12 @@ a.pill-button:hover {
 .map-wrapper {
   flex: 1; /* Ocupa el espacio restante junto al sidebar */
   position: relative;
-  display: flex;
+  /* [CORRECCIÓN] Usar 'block' en lugar de 'flex' soluciona el colapso 
+     de altura de los hijos absolutos en navegadores WebKit/Safari móviles */
+  display: block; 
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 #viewDiv {
@@ -486,7 +494,8 @@ a.pill-button:hover {
 }
 
 .map-toolbar.bottom-right {
-  bottom: 30px;
+  /* [CORRECCIÓN] Safe Area: Previene que la barra inferior nativa de iOS tape la herramienta */
+  bottom: calc(30px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Botones de Toolbar */
@@ -524,7 +533,9 @@ a.pill-button:hover {
   top: 20px;
   right: 80px; 
   width: 320px;
-  max-height: calc(100% - 60px);
+  /* [CORRECCIÓN] Altura máxima dinámica basada en dvh para evitar overflow vertical */
+  max-height: calc(100vh - 60px); 
+  max-height: calc(100dvh - 60px); 
   background: white;
   border-radius: 8px;
   box-shadow: 0 6px 16px rgba(0,0,0,0.12);
@@ -715,7 +726,8 @@ a.pill-button:hover {
   }
 
   .map-toolbar.bottom-right {
-    bottom: 25px;
+    /* [CORRECCIÓN] Safe Area Mobile */
+    bottom: calc(25px + env(safe-area-inset-bottom, 0px));
   }
 
   .toolbar-btn {
@@ -729,7 +741,9 @@ a.pill-button:hover {
     top: 10px;
     width: calc(100vw - 80px); /* Usa casi todo el espacio menos los márgenes y toolbars */
     max-width: 320px;
-    max-height: 55vh; /* Evita tapar todo el mapa verticalmente */
+    /* [CORRECCIÓN] Asegurar que el panel nunca cubra verticalmente a la barra inferior */
+    max-height: calc(100vh - 140px);
+    max-height: calc(100dvh - 140px); 
     padding: 15px;
   }
 

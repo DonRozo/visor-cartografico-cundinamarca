@@ -50,8 +50,9 @@ export function initializeMap(container: HTMLDivElement): {
         map: map,
         center: initialCenter,
         zoom: initialZoom,
-        padding: { left: 360 }, // Espacio para el catálogo
-        // [CORRECCIÓN] Limpiamos todos los controles nativos para usar los nuestros
+        // [CORRECCIÓN QUIRÚRGICA] Eliminamos por completo el padding lateral (padding: { left: 360 }).
+        // Dado que ahora usamos Flexbox, el mapa ocupa el 100% de su contenedor de forma dinámica,
+        // evitando que en pantallas móviles la "cámara" sea empujada fuera de la pantalla.
         ui: { components: ["attribution"] } 
     });
 
