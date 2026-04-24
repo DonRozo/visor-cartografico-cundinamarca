@@ -8,7 +8,7 @@ html, body, #root {
   padding: 0;
   margin: 0;
   height: 100vh;
-  height: 100dvh; /* [CORRECCIÓN] Usa altura dinámica para evitar cortes en móvil */
+  height: 100dvh; /* Usa altura dinámica para evitar cortes en móvil */
   width: 100%;
   overflow: hidden;
   font-family: 'Montserrat', sans-serif;
@@ -20,9 +20,9 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  height: 100dvh; 
+  height: 100dvh; /* Evita que la barra de direcciones esconda contenido */
   width: 100%;
-  overflow: hidden; /* [CORRECCIÓN] Previene que el body haga scroll indeseado */
+  overflow: hidden; /* Previene que el body haga scroll indeseado */
 }
 
 /* ==========================================================================
@@ -133,7 +133,7 @@ html, body, #root {
   flex: 1; /* Ocupa el espacio restante de la pantalla */
   position: relative;
   overflow: hidden;
-  min-height: 0; /* [CORRECCIÓN] Vital en iOS/WebKit para que los flex-child no desborden */
+  min-height: 0; /* [VITAL] Evita el colapso de Flexbox en WebKit (iOS/Safari) */
   min-width: 0;
 }
 
@@ -439,32 +439,36 @@ a.pill-button:hover {
 }
 
 /* ==========================================================================
-   7. ÁREA DE MAPA Y ARQUITECTURA DE CONTENEDORES
+   7. ÁREA DE MAPA Y ARQUITECTURA DE CONTENEDORES (ESTRUCTURAL Y RESPONSIVE)
    ========================================================================== */
 .map-wrapper {
   flex: 1; /* Ocupa el espacio restante junto al sidebar */
   position: relative;
-  display: flex; /* [CORRECCIÓN] flex para resolver 100% de hijos sin colapsar */
+  display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 0;
+  min-height: 0; /* [VITAL] Soluciona el colapso flex en iOS Safari */
   overflow: hidden;
 }
 
 .map-component-root {
-  flex: 1; /* [CORRECCIÓN] Garantiza que el React tree ocupe el área entera */
+  flex: 1;
   position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 0;
+  min-height: 0; /* [VITAL] Permite que el hijo #viewDiv herede la altura correctamente */
+  width: 100%;
+  height: 100%;
 }
 
+/* El lienzo real de ArcGIS */
 #viewDiv {
-  flex: 1;
+  flex: 1; /* Anclado al flujo nativo flexbox, se estirará para llenar la pantalla */
   width: 100%;
-  position: relative; /* En lugar de absolute para que respete el flujo flexbox */
-  background-color: #f8fafc; /* Evita pantallazos grises agresivos en recargas */
+  position: relative;
+  background-color: transparent; /* Fondo neutro para la inicialización */
+  min-height: 0;
 }
 
 .esri-ui {
@@ -733,7 +737,7 @@ a.pill-button:hover {
   }
 
   .map-toolbar.bottom-right {
-    /* [CORRECCIÓN] Safe Area Mobile - Flota respetando la barra del navegador inferior */
+    /* Safe Area Mobile - Flota respetando la barra del navegador inferior */
     bottom: calc(25px + env(safe-area-inset-bottom, 0px));
   }
 
@@ -748,7 +752,6 @@ a.pill-button:hover {
     top: 10px;
     width: calc(100vw - 80px); /* Usa casi todo el espacio menos los márgenes y toolbars */
     max-width: 320px;
-    /* [CORRECCIÓN] Evita que el panel baje demasiado y tape la toolbar inferior en teléfonos pequeños */
     max-height: calc(100dvh - 140px - env(safe-area-inset-bottom, 0px));
     padding: 15px;
   }

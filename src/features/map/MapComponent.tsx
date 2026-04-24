@@ -41,7 +41,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
 
             const { offsetWidth, offsetHeight } = mapDiv.current;
             
-            // Solo inicializa si el layout ya resolvió dimensiones reales > 0
+            // Verificamos que el contenedor tenga tamaño útil y estable
             if (offsetWidth > 0 && offsetHeight > 0) {
                 isInitialized = true; 
                 
@@ -53,7 +53,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                 setZoomPreFn(() => zoomPre);
                 setZoomHomeFn(() => zoomHome);
 
-                // Montamos los widgets en los refs
+                // Montamos los widgets en los refs tan pronto inicialicen
                 if (layerListRef.current) widgets.layerList.container = layerListRef.current;
                 if (legendRef.current) widgets.legend.container = legendRef.current;
                 if (basemapRef.current) widgets.basemapGallery.container = basemapRef.current;
@@ -61,7 +61,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                 if (sketchRef.current) widgets.sketch.container = sketchRef.current;
                 if (measureRef.current) widgets.measurement.container = measureRef.current;
 
-                // Desconectamos el observer una vez el mapa está asegurado
+                // Desconectamos el observador una vez creado exitosamente
                 if (resizeObserver) {
                     resizeObserver.disconnect();
                 }
@@ -76,7 +76,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                     clearTimeout(stabilityTimeout);
                 }
 
-                // Debounce de estabilización: 300ms
+                // Debounce de 300ms garantizando un layout estable en móvil antes de instanciar
                 stabilityTimeout = setTimeout(() => {
                     attemptInitialization();
                 }, 300);
@@ -148,7 +148,6 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         }
     };
 
-    // Iconos
     const IconTools = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>;
     const IconLayers = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>;
     const IconLegend = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>;
@@ -160,13 +159,13 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
     const IconHome = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
 
     return (
-        // [CORRECCIÓN DEFINITIVA] Devolvemos `.map-component-root` al flujo Flexbox normal.
-        // Al usar `flex: 1` y `height: 100%`, garantizamos que el layout padre nunca colapse a 0px.
-        <div className="map-component-root" style={{ flex: 1, width: '100%', height: '100%', position: 'relative' }}>
+        // [CORRECCIÓN QUIRÚRGICA FINAL] Retiramos el color rojo, los 500px fijos y flex: 'none'.
+        // En su lugar, el contenedor React utiliza flex: 1 y el viewDiv hereda de manera transparente todo
+        // el espacio flex que CSS (App.css) resuelve de manera sólida.
+        <div className="map-component-root" style={{ position: 'relative', display: 'flex', flexDirection: 'column', flex: 1 }}>
             
-            {/* El mapa (#viewDiv) es el único elemento con anclaje absoluto estricto a las 4 esquinas.
-                De esta forma se estira por dentro del layout seguro sin importar el dispositivo. */}
-            <div id="viewDiv" ref={mapDiv} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}></div>
+            {/* Div del mapa limpio, flexible, 100% dependiente de la arquitectura CSS responsive externa */}
+            <div id="viewDiv" ref={mapDiv} style={{ flex: 1, width: '100%', position: 'relative' }}></div>
 
             {/* CONTENEDOR SUPERIOR DERECHO (HERRAMIENTAS) */}
             <div className="map-toolbar top-right">
