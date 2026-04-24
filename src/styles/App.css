@@ -4,13 +4,11 @@
 /* ==========================================================================
    ESTILOS GENERALES Y LAYOUT ESTRUCTURAL
    ========================================================================== */
-html,
-body,
-#root {
+html, body, #root {
   padding: 0;
   margin: 0;
   height: 100vh;
-  height: 100dvh; /* Altura dinámica para evitar recortes por las barras del navegador móvil */
+  height: 100dvh; /* Altura dinámica para evitar recortes en móvil */
   width: 100%;
   overflow: hidden;
   font-family: 'Montserrat', sans-serif;
@@ -22,16 +20,16 @@ body,
   display: flex;
   flex-direction: column;
   height: 100vh;
-  height: 100dvh;
+  height: 100dvh; 
   width: 100%;
-  overflow: hidden;
+  overflow: hidden; 
 }
 
 /* ==========================================================================
    1. FRANJA SUPERIOR GOV.CO
    ========================================================================== */
 .gov-co-bar {
-  background-color: #3366cc;
+  background-color: #3366CC;
   height: 32px;
   display: flex;
   align-items: center;
@@ -64,8 +62,8 @@ body,
   display: flex;
   align-items: center;
   flex-grow: 1;
-  min-width: 0;
-  margin-right: 40px;
+  min-width: 0; 
+  margin-right: 40px; 
 }
 
 /* Botón menú hamburguesa (Oculto en escritorio) */
@@ -85,7 +83,7 @@ body,
   background-color: #f1f5f9;
 }
 
-/* Logos institucionales con respiro y separadores */
+/* Logos institucionales */
 .logo-gov {
   height: 48px;
   margin-right: 20px;
@@ -114,7 +112,6 @@ body,
   text-transform: uppercase;
 }
 
-/* Contenedor del widget Search integrado al header */
 .header-search {
   width: 320px;
   flex-shrink: 0;
@@ -132,15 +129,14 @@ body,
    ========================================================================== */
 .main-layout {
   display: flex;
-  flex: 1;
+  flex: 1; 
   position: relative;
   overflow: hidden;
-  min-height: 0;
-  min-width: 0;
-  height: 100%;
+  min-height: 0; 
+  height: 100%; /* [SOLUCIÓN RESPONSIVE] Obliga a heredar la altura en Safari */
+  width: 100%;
 }
 
-/* Envoltura estructural del sidebar */
 .sidebar-wrapper {
   height: 100%;
   display: flex;
@@ -174,7 +170,6 @@ body,
   padding-bottom: 12px;
 }
 
-/* Input de búsqueda refinado */
 #search-input {
   width: 100%;
   padding: 12px 15px;
@@ -196,7 +191,6 @@ body,
   background-color: #ffffff;
 }
 
-/* --- ESTADOS DEL CATÁLOGO --- */
 .status-message {
   padding: 15px;
   border-radius: 6px;
@@ -205,33 +199,17 @@ body,
   margin-bottom: 20px;
   border: 1px solid transparent;
 }
-
-.status-message.loading {
-  background-color: #f1f5f9;
-  color: #475569;
-  border-color: #e2e8f0;
-}
-
-.status-message.error {
-  background-color: #fef2f2;
-  color: #b91c1c;
-  border-color: #fecaca;
-}
-
-.status-message.empty {
-  background-color: #f8fafc;
-  color: #64748b;
-  border-color: #e2e8f0;
-  font-style: italic;
-}
+.status-message.loading { background-color: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+.status-message.error { background-color: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+.status-message.empty { background-color: #f8fafc; color: #64748b; border-color: #e2e8f0; font-style: italic; }
 
 /* ==========================================================================
-   4. TARJETAS DEL CATÁLOGO (ESTILO INSTITUCIONAL ESTÁTICO + OVERLAY)
+   4. TARJETAS DEL CATÁLOGO 
    ========================================================================== */
 #card-container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 20px; 
   padding-bottom: 20px;
 }
 
@@ -240,12 +218,10 @@ body,
   height: 190px;
   cursor: pointer;
   position: relative;
-  z-index: 1;
+  z-index: 1; 
 }
 
-.card:hover {
-  z-index: 10;
-}
+.card:hover { z-index: 10; }
 
 .card-inner {
   position: relative;
@@ -254,12 +230,10 @@ body,
   text-align: center;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 8px;
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   border: 1px solid #e2e8f0;
   background-color: #ffffff;
-  overflow: hidden;
+  overflow: hidden; 
 }
 
 .card:hover .card-inner {
@@ -279,12 +253,10 @@ body,
   height: 135px;
   object-fit: cover;
   border-bottom: 1px solid #f1f5f9;
-  transition: transform 0.5s ease;
+  transition: transform 0.5s ease; 
 }
 
-.card:hover .card-front img {
-  transform: scale(1.05);
-}
+.card:hover .card-front img { transform: scale(1.05); }
 
 .card-front .card-title {
   padding: 12px 15px;
@@ -298,11 +270,8 @@ body,
   transition: color 0.3s ease;
 }
 
-.card:hover .card-front .card-title {
-  color: #134174;
-}
+.card:hover .card-front .card-title { color: #134174; }
 
-/* Cara trasera como overlay estático */
 .card-back {
   position: absolute;
   top: 0;
@@ -320,7 +289,7 @@ body,
   text-align: center;
   opacity: 0;
   transition: opacity 0.3s ease;
-  z-index: 5;
+  z-index: 5; 
   box-sizing: border-box;
   backdrop-filter: blur(2px);
 }
@@ -334,9 +303,7 @@ body,
   overflow: hidden;
 }
 
-.card:hover .card-back {
-  opacity: 1;
-}
+.card:hover .card-back { opacity: 1; }
 
 /* ==========================================================================
    5. PANEL DE DETALLE (METADATOS)
@@ -378,7 +345,7 @@ body,
 }
 
 /* ==========================================================================
-   6. BOTONES (JERARQUÍA Y ESTILOS)
+   6. BOTONES
    ========================================================================== */
 .metadata-buttons {
   display: flex;
@@ -404,99 +371,42 @@ body,
   box-shadow: 0 2px 4px rgba(19, 65, 116, 0.2);
 }
 
-.pill-button:hover {
-  background-color: #0f345e;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(19, 65, 116, 0.3);
-}
+.pill-button:hover { background-color: #0f345e; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(19, 65, 116, 0.3); }
 
-.pill-button.secondary {
-  background-color: #f1f5f9;
-  color: #475569;
-  box-shadow: none;
-  border: 1px solid #cbd5e1;
-}
+.pill-button.secondary { background-color: #f1f5f9; color: #475569; box-shadow: none; border: 1px solid #cbd5e1; }
+.pill-button.secondary:hover { background-color: #e2e8f0; color: #1e293b; transform: translateY(-1px); }
 
-.pill-button.secondary:hover {
-  background-color: #e2e8f0;
-  color: #1e293b;
-  transform: translateY(-1px);
-}
-
-a.pill-button {
-  background-color: #0ea5e9;
-  box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);
-}
-
-a.pill-button:hover {
-  background-color: #0284c7;
-}
+a.pill-button { background-color: #0ea5e9; box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2); }
+a.pill-button:hover { background-color: #0284c7; }
 
 /* ==========================================================================
-   7. ÁREA DE MAPA Y ARQUITECTURA DE CONTENEDORES
+   7. ÁREA DE MAPA Y ARQUITECTURA DE CONTENEDORES (ESTRUCTURAL Y RESPONSIVE)
    ========================================================================== */
 
-/*
-  Esta es la corrección clave:
-  - toda la cadena del mapa resuelve altura real
-  - #viewDiv recibe height:100% y además un piso mínimo razonable
-  - así evitamos el colapso que la prueba de 500px evidenció
-*/
+/* [SOLUCIÓN RESPONSIVE AL HALLAZGO DE 500PX] 
+   Para garantizar altura sin recurrir a "500px", creamos una cadena sólida 
+   de Flexbox. Al añadir 'height: 100%' a la par de 'flex: 1' y 'min-height: 0',
+   le damos al motor de iOS/Safari la referencia explícita de altura que necesita
+   para no colapsar a 0px. */
 
 .map-wrapper {
-  flex: 1;
+  flex: 1; 
   position: relative;
-  display: flex;
+  display: flex; 
   flex-direction: column;
   min-width: 0;
-  min-height: 0;
+  min-height: 0; 
+  height: 100%; /* [SOLUCIÓN RESPONSIVE] */
   width: 100%;
-  height: 100%;
   overflow: hidden;
-}
-
-.map-component-root {
-  flex: 1 1 auto;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-#viewDiv {
-  flex: 1 1 auto;
-  width: 100%;
-  height: 100%;
-  min-height: 320px; /* piso mínimo para evitar colapso en móviles */
-  position: relative;
-  display: block;
-  background-color: transparent;
-  overflow: hidden;
-}
-
-.esri-ui {
-  z-index: 45;
-  font-family: inherit;
 }
 
 /* ==========================================================================
    8. NUEVOS CONTROLES CUSTOM DEL MAPA
    ========================================================================== */
+.esri-ui .esri-component { display: none !important; }
+.esri-ui .esri-attribution { display: block !important; }
 
-/* Limpieza de UI nativa de ArcGIS */
-.esri-ui .esri-component {
-  display: none !important;
-}
-
-.esri-ui .esri-attribution {
-  display: block !important;
-}
-
-/* Toolbars flotantes */
 .map-toolbar {
   position: absolute;
   right: 20px;
@@ -504,21 +414,14 @@ a.pill-button:hover {
   flex-direction: column;
   background: white;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   border: 1px solid #e2e8f0;
   z-index: 50;
   overflow: hidden;
 }
+.map-toolbar.top-right { top: 20px; }
+.map-toolbar.bottom-right { bottom: 30px; }
 
-.map-toolbar.top-right {
-  top: 20px;
-}
-
-.map-toolbar.bottom-right {
-  bottom: 30px;
-}
-
-/* Botones de toolbar */
 .toolbar-btn {
   background: transparent;
   border: none;
@@ -532,32 +435,20 @@ a.pill-button:hover {
   border-bottom: 1px solid #f1f5f9;
   transition: all 0.2s;
 }
+.toolbar-btn:last-child { border-bottom: none; }
+.toolbar-btn:hover { background-color: #f8fafc; color: #134174; }
+.toolbar-btn.active { background-color: #134174; color: white; }
 
-.toolbar-btn:last-child {
-  border-bottom: none;
-}
-
-.toolbar-btn:hover {
-  background-color: #f8fafc;
-  color: #134174;
-}
-
-.toolbar-btn.active {
-  background-color: #134174;
-  color: white;
-}
-
-/* Paneles flotantes */
 .floating-panel {
   position: absolute;
   top: 20px;
-  right: 80px;
+  right: 80px; 
   width: 320px;
   max-height: calc(100vh - 60px);
-  max-height: calc(100dvh - 60px);
+  max-height: calc(100dvh - 60px); 
   background: white;
   border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
   border: 1px solid #e2e8f0;
   z-index: 50;
   overflow-y: auto;
@@ -565,227 +456,65 @@ a.pill-button:hover {
   box-sizing: border-box;
   transition: opacity 0.3s, transform 0.3s;
 }
-
-.floating-panel.hidden {
-  display: none;
-}
-
-.floating-panel.visible {
-  display: block;
-}
-
-.floating-panel h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  font-size: 1.1rem;
-  color: #134174;
-  border-bottom: 2px solid #f1f5f9;
-  padding-bottom: 10px;
-}
-
-.tool-section {
-  margin-bottom: 20px;
-}
-
-.tool-section h4 {
-  margin: 0 0 10px 0;
-  font-size: 0.9rem;
-  color: #475569;
-}
-
-.panel-msg {
-  font-size: 0.9rem;
-  color: #64748b;
-  line-height: 1.5;
-}
-
-.panel-msg.success {
-  color: #059669;
-  font-weight: 600;
-  margin-top: 10px;
-}
-
-/* Componentes menores de herramientas */
-.measure-btns {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.pill-button.small {
-  padding: 8px 12px;
-  font-size: 0.8rem;
-}
-
-.file-input {
-  width: 100%;
-  font-size: 0.85rem;
-  padding: 8px;
-  border: 1px dashed #cbd5e1;
-  border-radius: 4px;
-}
-
-.floating-panel .esri-widget {
-  box-shadow: none !important;
-  background: transparent !important;
-}
-
-.floating-panel .esri-widget__heading {
-  color: #1e293b;
-  font-family: inherit;
-}
+.floating-panel.hidden { display: none; }
+.floating-panel.visible { display: block; }
+.floating-panel h3 { margin-top: 0; margin-bottom: 20px; font-size: 1.1rem; color: #134174; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+.tool-section { margin-bottom: 20px; }
+.tool-section h4 { margin: 0 0 10px 0; font-size: 0.9rem; color: #475569; }
+.panel-msg { font-size: 0.9rem; color: #64748b; line-height: 1.5; }
+.panel-msg.success { color: #059669; font-weight: 600; margin-top: 10px; }
+.measure-btns { display: flex; gap: 10px; margin-bottom: 10px; }
+.pill-button.small { padding: 8px 12px; font-size: 0.8rem; }
+.file-input { width: 100%; font-size: 0.85rem; padding: 8px; border: 1px dashed #cbd5e1; border-radius: 4px; }
+.floating-panel .esri-widget { box-shadow: none !important; background: transparent !important; }
+.floating-panel .esri-widget__heading { color: #1e293b; font-family: inherit; }
 
 /* ==========================================================================
    9. RESPONSIVE Y ADAPTABILIDAD MÓVIL
    ========================================================================== */
+.mobile-overlay { display: none; }
 
-.mobile-overlay {
-  display: none;
-}
-
-/* --- TABLET Y MÓVIL (<= 900px) --- */
 @media screen and (max-width: 900px) {
-  .institutional-header {
-    height: auto;
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 15px 20px;
-    gap: 15px;
-  }
-
-  .header-left {
-    width: 100%;
-    margin-right: 0;
-  }
-
-  .mobile-menu-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .header-search {
-    width: 100%;
-  }
-
-  .header-title {
-    font-size: 1.15rem;
-  }
-
-  .logo-gov {
-    height: 40px;
-    margin-right: 15px;
-  }
-
-  .logo-idee {
-    height: 32px;
-    padding-left: 15px;
-    margin-right: 15px;
-  }
-
+  .institutional-header { height: auto; flex-direction: column; align-items: flex-start; padding: 15px 20px; gap: 15px; }
+  .header-left { width: 100%; margin-right: 0; }
+  .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
+  .header-search { width: 100%; }
+  .header-title { font-size: 1.15rem; }
+  .logo-gov { height: 40px; margin-right: 15px; }
+  .logo-idee { height: 32px; padding-left: 15px; margin-right: 15px; }
+  
   .sidebar-wrapper {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    z-index: 60;
-    transform: translateX(-100%);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: absolute; top: 0; left: 0; height: 100%; z-index: 60;
+    transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-
-  .sidebar-wrapper.open {
-    transform: translateX(0);
-  }
-
-  #sidebar {
-    width: 85vw;
-    max-width: 360px;
-    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.15);
-  }
-
+  .sidebar-wrapper.open { transform: translateX(0); }
+  #sidebar { width: 85vw; max-width: 360px; box-shadow: 4px 0 15px rgba(0,0,0,0.15); }
+  
   .mobile-overlay {
-    display: block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(19, 65, 116, 0.4);
-    backdrop-filter: blur(2px);
-    z-index: 55;
-    cursor: pointer;
+    display: block; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(19, 65, 116, 0.4); backdrop-filter: blur(2px); z-index: 55; cursor: pointer;
     animation: fadeIn 0.3s ease;
   }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  /* Refuerzo móvil del mapa */
-  .main-layout,
-  .map-wrapper,
-  .map-component-root {
-    height: 100%;
-  }
-
-  #viewDiv {
-    min-height: clamp(320px, calc(100dvh - 180px), 1000px);
-  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 }
 
-/* --- MÓVIL PEQUEÑO (<= 768px) --- */
 @media screen and (max-width: 768px) {
-  .logo-gov {
-    height: 35px;
-    margin-right: 10px;
-  }
-
-  .logo-idee {
-    height: 26px;
-    padding-left: 10px;
-    margin-right: 10px;
-  }
-
-  .header-title {
-    font-size: 1rem;
-    white-space: normal;
-  }
-
-  .map-toolbar {
-    right: 10px;
-  }
-
-  .map-toolbar.top-right {
-    top: 10px;
-  }
-
-  .map-toolbar.bottom-right {
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  }
-
-  .toolbar-btn {
-    width: 40px;
-    height: 40px;
-  }
-
+  .logo-gov { height: 35px; margin-right: 10px; }
+  .logo-idee { height: 26px; padding-left: 10px; margin-right: 10px; }
+  .header-title { font-size: 1rem; white-space: normal; }
+  
+  .map-toolbar { right: 10px; }
+  .map-toolbar.top-right { top: 10px; }
+  .map-toolbar.bottom-right { bottom: calc(25px + env(safe-area-inset-bottom, 0px)); }
+  .toolbar-btn { width: 40px; height: 40px; }
+  
   .floating-panel {
-    right: 60px;
-    top: 10px;
-    width: calc(100vw - 80px);
-    max-width: 320px;
-    max-height: calc(100dvh - 140px - env(safe-area-inset-bottom, 0px));
-    padding: 15px;
+    right: 60px; top: 10px; width: calc(100vw - 80px); max-width: 320px;
+    max-height: calc(100dvh - 140px - env(safe-area-inset-bottom, 0px)); padding: 15px;
   }
-
-  .floating-panel h3 {
-    font-size: 1rem;
-  }
+  .floating-panel h3 { font-size: 1rem; }
 }
 
-/* --- MINI (<= 480px) --- */
 @media screen and (max-width: 480px) {
-  .header-title {
-    display: none;
-  }
+  .header-title { display: none; }
 }
