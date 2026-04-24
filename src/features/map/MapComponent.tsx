@@ -33,16 +33,20 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
 
     useEffect(() => {
         let resizeObserver: ResizeObserver | null = null;
+        let stabilityTimeout: ReturnType<typeof setTimeout> | null = null;
+        let isInitialized = false; // Bandera para evitar inicializaciones duplicadas
 
-        // [CORRECCIÓN QUIRÚRGICA] Función para inicializar el mapa de forma robusta.
-        // Solo se ejecuta cuando el contenedor tiene dimensiones reales (>0).
-        const startMap = () => {
-            if (!mapDiv.current || viewRef.current) return;
+        // [CORRECCIÓN QUIRÚRGICA] Función que intenta inicializar el mapa.
+        // Solo procederá si el contenedor tiene tamaño útil real y estable.
+        const attemptInitialization = () => {
+            if (!mapDiv.current || isInitialized) return;
 
             const { offsetWidth, offsetHeight } = mapDiv.current;
             
-            // Verificamos que el contenedor tenga tamaño útil antes de inicializar
+            // Verificamos que el contenedor tenga tamaño útil tras el periodo de estabilización
             if (offsetWidth > 0 && offsetHeight > 0) {
+                isInitialized = true; // Marcamos como inicializado de inmediato
+                
                 const { map, view, widgets, zoomPre, zoomHome } = initializeMap(mapDiv.current);
                 
                 mapRef.current = map;
@@ -59,7 +63,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                 if (sketchRef.current) widgets.sketch.container = sketchRef.current;
                 if (measureRef.current) widgets.measurement.container = measureRef.current;
 
-                // Una vez inicializado, ya no necesitamos seguir observando para la creación
+                // Una vez inicializado con tamaño estable, desconectamos el observador
                 if (resizeObserver) {
                     resizeObserver.disconnect();
                 }
@@ -67,19 +71,31 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         };
 
         if (mapDiv.current) {
-            // Usamos ResizeObserver para detectar cuándo el layout flex/responsive 
-            // le otorga tamaño real al contenedor (crucial en dispositivos móviles).
+            // Usamos ResizeObserver para detectar los cambios de layout (reflows).
             resizeObserver = new ResizeObserver(() => {
-                startMap();
-            });
-            resizeObserver.observe(mapDiv.current);
+                // Si el mapa ya cargó exitosamente, ignoramos futuros eventos de este observer
+                if (isInitialized) return;
 
-            // Intento de inicialización inmediata por si ya tiene tamaño
-            startMap();
+                // Si las dimensiones cambian mientras esperábamos, cancelamos el intento anterior
+                if (stabilityTimeout) {
+                    clearTimeout(stabilityTimeout);
+                }
+
+                // Esperamos 300ms de absoluta estabilidad en el tamaño del contenedor
+                // antes de considerar que el layout final móvil (header, flex, etc.) ya se asentó.
+                stabilityTimeout = setTimeout(() => {
+                    attemptInitialization();
+                }, 300);
+            });
+            
+            resizeObserver.observe(mapDiv.current);
         }
         
         return () => {
-            // Limpieza de recursos y observadores
+            // Limpieza estricta de temporizadores y observadores para evitar fugas de memoria
+            if (stabilityTimeout) {
+                clearTimeout(stabilityTimeout);
+            }
             if (resizeObserver) {
                 resizeObserver.disconnect();
             }
@@ -127,6 +143,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
     // Lógica para compartir mapa (URL con parámetros)
     const handleShare = () => {
         const view = viewRef.current;
+        // Casteo simple interno para evitar errores rígidos de TS sin recurrir a parchear todo el SDK
         const center = view?.center as any;
         
         if (view && center && center.longitude != null && center.latitude != null) {
