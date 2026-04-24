@@ -32,67 +32,54 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
     const [shareMessage, setShareMessage] = useState<string>("");
 
     useEffect(() => {
-        // Variables para manejo de memoria y listeners responsive
-        let resizeTimeout: ReturnType<typeof setTimeout>;
         let resizeObserver: ResizeObserver | null = null;
 
-        // Lógica centralizada para forzar repintado del mapa en móvil.
-        const forceMapResize = () => {
-            if (resizeTimeout) clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                if (viewRef.current) {
-                    requestAnimationFrame(() => {
-                        if (viewRef.current) {
-                            viewRef.current.resize(); 
-                            viewRef.current.requestRender(); 
-                        }
-                    });
+        // [CORRECCIÓN QUIRÚRGICA] Función para inicializar el mapa de forma robusta.
+        // Solo se ejecuta cuando el contenedor tiene dimensiones reales (>0).
+        const startMap = () => {
+            if (!mapDiv.current || viewRef.current) return;
+
+            const { offsetWidth, offsetHeight } = mapDiv.current;
+            
+            // Verificamos que el contenedor tenga tamaño útil antes de inicializar
+            if (offsetWidth > 0 && offsetHeight > 0) {
+                const { map, view, widgets, zoomPre, zoomHome } = initializeMap(mapDiv.current);
+                
+                mapRef.current = map;
+                viewRef.current = view;
+                widgetsRef.current = widgets;
+                setZoomPreFn(() => zoomPre);
+                setZoomHomeFn(() => zoomHome);
+
+                // Montamos los widgets en los refs tan pronto inicialicen
+                if (layerListRef.current) widgets.layerList.container = layerListRef.current;
+                if (legendRef.current) widgets.legend.container = legendRef.current;
+                if (basemapRef.current) widgets.basemapGallery.container = basemapRef.current;
+                if (printRef.current && PRINT_SERVICE_URL) widgets.print.container = printRef.current;
+                if (sketchRef.current) widgets.sketch.container = sketchRef.current;
+                if (measureRef.current) widgets.measurement.container = measureRef.current;
+
+                // Una vez inicializado, ya no necesitamos seguir observando para la creación
+                if (resizeObserver) {
+                    resizeObserver.disconnect();
                 }
-            }, 150); 
+            }
         };
 
-        if (mapDiv.current && !mapRef.current) {
-            const { map, view, widgets, zoomPre, zoomHome } = initializeMap(mapDiv.current);
-            mapRef.current = map;
-            viewRef.current = view;
-            widgetsRef.current = widgets;
-            setZoomPreFn(() => zoomPre);
-            setZoomHomeFn(() => zoomHome);
-
-            // Montamos los widgets en los refs tan pronto inicialicen
-            if (layerListRef.current) widgets.layerList.container = layerListRef.current;
-            if (legendRef.current) widgets.legend.container = legendRef.current;
-            if (basemapRef.current) widgets.basemapGallery.container = basemapRef.current;
-            if (printRef.current && PRINT_SERVICE_URL) widgets.print.container = printRef.current;
-            if (sketchRef.current) widgets.sketch.container = sketchRef.current;
-            if (measureRef.current) widgets.measurement.container = measureRef.current;
-
-            // --- [INICIO EVENTOS RESPONSIVE] ---
-            setTimeout(forceMapResize, 300);
-            setTimeout(forceMapResize, 800); 
-
-            window.addEventListener('resize', forceMapResize);
-            window.addEventListener('orientationchange', forceMapResize);
-
-            if (window.visualViewport) {
-                window.visualViewport.addEventListener('resize', forceMapResize);
-            }
-
+        if (mapDiv.current) {
+            // Usamos ResizeObserver para detectar cuándo el layout flex/responsive 
+            // le otorga tamaño real al contenedor (crucial en dispositivos móviles).
             resizeObserver = new ResizeObserver(() => {
-                forceMapResize();
+                startMap();
             });
             resizeObserver.observe(mapDiv.current);
-            // --- [FIN EVENTOS RESPONSIVE] ---
+
+            // Intento de inicialización inmediata por si ya tiene tamaño
+            startMap();
         }
         
         return () => {
-            if (resizeTimeout) clearTimeout(resizeTimeout);
-            window.removeEventListener('resize', forceMapResize);
-            window.removeEventListener('orientationchange', forceMapResize);
-            
-            if (window.visualViewport) {
-                window.visualViewport.removeEventListener('resize', forceMapResize);
-            }
+            // Limpieza de recursos y observadores
             if (resizeObserver) {
                 resizeObserver.disconnect();
             }
@@ -105,6 +92,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         };
     }, []);
 
+    // Reacción al trigger de añadir capas desde el catálogo
     useEffect(() => {
         if (layerTrigger && mapRef.current && viewRef.current) {
             addLayerToMap(mapRef.current, viewRef.current, layerTrigger.item);
@@ -115,11 +103,11 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         setActivePanel(prev => prev === panel ? null : panel);
     };
 
-    // Funciones del Contenedor Inferior (Navegación)
-    const handleZoomIn = () => viewRef.current?.goTo({ zoom: viewRef.current.zoom + 1 });
-    const handleZoomOut = () => viewRef.current?.goTo({ zoom: viewRef.current.zoom - 1 });
+    // Funciones de navegación
+    const handleZoomIn = () => viewRef.current?.goTo({ zoom: (viewRef.current.zoom || 0) + 1 });
+    const handleZoomOut = () => viewRef.current?.goTo({ zoom: (viewRef.current.zoom || 0) - 1 });
 
-    // Herramientas Específicas
+    // Lógica de herramientas de medición
     const handleMeasure = (type: "distance" | "area") => {
         if (widgetsRef.current) widgetsRef.current.measurement.activeTool = type;
     };
@@ -127,6 +115,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         if (widgetsRef.current) widgetsRef.current.measurement.clear();
     };
     
+    // Lógica de importación GeoJSON
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file && mapRef.current && viewRef.current) {
@@ -135,12 +124,10 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         }
     };
 
+    // Lógica para compartir mapa (URL con parámetros)
     const handleShare = () => {
         const view = viewRef.current;
-        // [CORRECCIÓN QUIRÚRGICA] Casteamos explícitamente a 'any' para silenciar el 
-        // falso positivo del linter de TypeScript, ya que en tiempo de ejecución 
-        // las propiedades longitude y latitude sí existen.
-        const center: any = view?.center;
+        const center = view?.center as any;
         
         if (view && center && center.longitude != null && center.latitude != null) {
             const lon = center.longitude.toFixed(5);
@@ -157,13 +144,12 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         }
     };
 
-    // SVGs Limpios para los botones sin usar librerías
+    // Iconografía SVG nativa
     const IconTools = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>;
     const IconLayers = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>;
     const IconLegend = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>;
     const IconBasemap = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="21"></line></svg>;
     const IconInfo = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>;
-    
     const IconPlus = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
     const IconMinus = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
     const IconUndo = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>;
@@ -191,7 +177,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                 <button className="toolbar-btn" onClick={zoomHomeFn} title="Vista inicial"><IconHome /></button>
             </div>
 
-            {/* PANELES COLAPSABLES (Ocultos con CSS para proteger el ciclo de vida del DOM) */}
+            {/* PANELES COLAPSABLES */}
             <div className={`map-panel floating-panel ${activePanel === 'tools' ? 'visible' : 'hidden'}`}>
                 <h3>Herramientas</h3>
                 <div className="tool-section">
@@ -222,25 +208,21 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                 </div>
             </div>
 
-            {/* Panel: Capas */}
             <div className={`map-panel floating-panel ${activePanel === 'layers' ? 'visible' : 'hidden'}`}>
                 <h3>Capas Operativas</h3>
                 <div ref={layerListRef}></div>
             </div>
 
-            {/* Panel: Leyenda */}
             <div className={`map-panel floating-panel ${activePanel === 'legend' ? 'visible' : 'hidden'}`}>
                 <h3>Leyenda Cartográfica</h3>
                 <div ref={legendRef}></div>
             </div>
 
-            {/* Panel: Mapa Base */}
             <div className={`map-panel floating-panel ${activePanel === 'basemap' ? 'visible' : 'hidden'}`}>
                 <h3>Mapa Base</h3>
                 <div ref={basemapRef}></div>
             </div>
 
-            {/* Panel: Información */}
             <div className={`map-panel floating-panel ${activePanel === 'info' ? 'visible' : 'hidden'}`}>
                 <h3>Información del Visor</h3>
                 <p className="panel-msg">
