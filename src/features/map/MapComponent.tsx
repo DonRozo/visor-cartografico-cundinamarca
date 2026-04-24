@@ -34,18 +34,17 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
     useEffect(() => {
         let resizeObserver: ResizeObserver | null = null;
         let stabilityTimeout: ReturnType<typeof setTimeout> | null = null;
-        let isInitialized = false; // Bandera para evitar inicializaciones duplicadas
+        let isInitialized = false;
 
-        // [CORRECCIÓN QUIRÚRGICA] Función que intenta inicializar el mapa.
-        // Solo procederá si el contenedor tiene tamaño útil real y estable.
+        // Función que intenta inicializar el mapa.
         const attemptInitialization = () => {
             if (!mapDiv.current || isInitialized) return;
 
             const { offsetWidth, offsetHeight } = mapDiv.current;
             
-            // Verificamos que el contenedor tenga tamaño útil tras el periodo de estabilización
+            // Verificamos que el contenedor tenga tamaño útil real (>0)
             if (offsetWidth > 0 && offsetHeight > 0) {
-                isInitialized = true; // Marcamos como inicializado de inmediato
+                isInitialized = true; 
                 
                 const { map, view, widgets, zoomPre, zoomHome } = initializeMap(mapDiv.current);
                 
@@ -63,7 +62,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                 if (sketchRef.current) widgets.sketch.container = sketchRef.current;
                 if (measureRef.current) widgets.measurement.container = measureRef.current;
 
-                // Una vez inicializado con tamaño estable, desconectamos el observador
+                // Una vez inicializado, desconectamos el observador
                 if (resizeObserver) {
                     resizeObserver.disconnect();
                 }
@@ -71,18 +70,15 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         };
 
         if (mapDiv.current) {
-            // Usamos ResizeObserver para detectar los cambios de layout (reflows).
+            // Usamos ResizeObserver para detectar la estabilidad del layout
             resizeObserver = new ResizeObserver(() => {
-                // Si el mapa ya cargó exitosamente, ignoramos futuros eventos de este observer
                 if (isInitialized) return;
 
-                // Si las dimensiones cambian mientras esperábamos, cancelamos el intento anterior
                 if (stabilityTimeout) {
                     clearTimeout(stabilityTimeout);
                 }
 
-                // Esperamos 300ms de absoluta estabilidad en el tamaño del contenedor
-                // antes de considerar que el layout final móvil (header, flex, etc.) ya se asentó.
+                // Esperamos 300ms de absoluta estabilidad en el tamaño
                 stabilityTimeout = setTimeout(() => {
                     attemptInitialization();
                 }, 300);
@@ -92,7 +88,6 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         }
         
         return () => {
-            // Limpieza estricta de temporizadores y observadores para evitar fugas de memoria
             if (stabilityTimeout) {
                 clearTimeout(stabilityTimeout);
             }
@@ -108,7 +103,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         };
     }, []);
 
-    // Reacción al trigger de añadir capas desde el catálogo
+    // Reacción al trigger de añadir capas
     useEffect(() => {
         if (layerTrigger && mapRef.current && viewRef.current) {
             addLayerToMap(mapRef.current, viewRef.current, layerTrigger.item);
@@ -119,11 +114,11 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         setActivePanel(prev => prev === panel ? null : panel);
     };
 
-    // Funciones de navegación
+    // Navegación
     const handleZoomIn = () => viewRef.current?.goTo({ zoom: (viewRef.current.zoom || 0) + 1 });
     const handleZoomOut = () => viewRef.current?.goTo({ zoom: (viewRef.current.zoom || 0) - 1 });
 
-    // Lógica de herramientas de medición
+    // Medición
     const handleMeasure = (type: "distance" | "area") => {
         if (widgetsRef.current) widgetsRef.current.measurement.activeTool = type;
     };
@@ -131,7 +126,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         if (widgetsRef.current) widgetsRef.current.measurement.clear();
     };
     
-    // Lógica de importación GeoJSON
+    // Importación GeoJSON
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file && mapRef.current && viewRef.current) {
@@ -140,10 +135,9 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         }
     };
 
-    // Lógica para compartir mapa (URL con parámetros)
+    // Compartir mapa
     const handleShare = () => {
         const view = viewRef.current;
-        // Casteo simple interno para evitar errores rígidos de TS sin recurrir a parchear todo el SDK
         const center = view?.center as any;
         
         if (view && center && center.longitude != null && center.latitude != null) {
@@ -161,7 +155,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         }
     };
 
-    // Iconografía SVG nativa
+    // Iconos
     const IconTools = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>;
     const IconLayers = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>;
     const IconLegend = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>;
@@ -173,9 +167,14 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
     const IconHome = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
 
     return (
-        <div className="map-component-root" style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-            {/* Div del mapa de ArcGIS */}
-            <div id="viewDiv" ref={mapDiv} style={{ height: '500px', width: '100%', backgroundColor: 'red', position: 'relative', flex: 'none' }}></div>
+        // [CORRECCIÓN QUIRÚRGICA] Abandonamos el uso de 'flex: 1' para el tamaño del mapa.
+        // En navegadores móviles (Safari/Chrome), los hijos flex a veces colapsan su altura.
+        // Al usar position absolute (top, bottom, left, right a 0), anclamos las cuatro esquinas 
+        // del contenedor a su padre (.map-wrapper), forzando el 100% de tamaño real de forma infalible.
+        <div className="map-component-root" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+            
+            {/* Div del mapa de ArcGIS con 100% estricto */}
+            <div id="viewDiv" ref={mapDiv} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}></div>
 
             {/* CONTENEDOR SUPERIOR DERECHO (HERRAMIENTAS) */}
             <div className="map-toolbar top-right">
