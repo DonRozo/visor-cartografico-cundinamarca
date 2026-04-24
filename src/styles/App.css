@@ -8,7 +8,7 @@ html, body, #root {
   padding: 0;
   margin: 0;
   height: 100vh;
-  height: 100dvh; /* Usa altura dinámica para evitar cortes en móvil */
+  height: 100dvh; /* Altura dinámica para evitar recortes por las barras del navegador móvil */
   width: 100%;
   overflow: hidden;
   font-family: 'Montserrat', sans-serif;
@@ -20,9 +20,9 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  height: 100dvh; /* Evita que la barra de direcciones esconda contenido */
+  height: 100dvh; 
   width: 100%;
-  overflow: hidden; /* Previene que el body haga scroll indeseado */
+  overflow: hidden; 
 }
 
 /* ==========================================================================
@@ -133,7 +133,7 @@ html, body, #root {
   flex: 1; /* Ocupa el espacio restante de la pantalla */
   position: relative;
   overflow: hidden;
-  min-height: 0; /* [VITAL] Evita el colapso de Flexbox en WebKit (iOS/Safari) */
+  min-height: 0; /* [ESTRUCTURAL VITAL] Previene que Flexbox colapse en móviles Safari/WebKit */
   min-width: 0;
 }
 
@@ -441,13 +441,20 @@ a.pill-button:hover {
 /* ==========================================================================
    7. ÁREA DE MAPA Y ARQUITECTURA DE CONTENEDORES (ESTRUCTURAL Y RESPONSIVE)
    ========================================================================== */
+
+/* [SOLUCIÓN ESTRUCTURAL AL HALLAZGO DE 500PX] 
+   Para que el div de mapa ocupe la altura restante real sin usar alturas fijas, 
+   creamos una cadena estricta de Flexbox. Cada contenedor padre debe usar 'flex: 1'
+   y 'min-height: 0'. Esto transmite la altura del viewport libre hasta el mapa,
+   previniendo el colapso a 0px en navegadores móviles. */
+
 .map-wrapper {
-  flex: 1; /* Ocupa el espacio restante junto al sidebar */
+  flex: 1; 
   position: relative;
-  display: flex;
+  display: flex; 
   flex-direction: column;
   min-width: 0;
-  min-height: 0; /* [VITAL] Soluciona el colapso flex en iOS Safari */
+  min-height: 0; 
   overflow: hidden;
 }
 
@@ -457,18 +464,18 @@ a.pill-button:hover {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 0; /* [VITAL] Permite que el hijo #viewDiv herede la altura correctamente */
+  min-height: 0; 
   width: 100%;
   height: 100%;
 }
 
 /* El lienzo real de ArcGIS */
 #viewDiv {
-  flex: 1; /* Anclado al flujo nativo flexbox, se estirará para llenar la pantalla */
+  flex: 1; /* Al integrarlo puramente a Flexbox, hereda limpiamente el 100% dinámico */
   width: 100%;
   position: relative;
-  background-color: transparent; /* Fondo neutro para la inicialización */
   min-height: 0;
+  background-color: #f8fafc; /* Color neutro para transiciones, NUNCA rojo */
 }
 
 .esri-ui {

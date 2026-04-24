@@ -41,7 +41,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
 
             const { offsetWidth, offsetHeight } = mapDiv.current;
             
-            // Verificamos que el contenedor tenga tamaño útil y estable
+            // Verificamos que el contenedor tenga tamaño útil y estable resuelto por CSS flexbox
             if (offsetWidth > 0 && offsetHeight > 0) {
                 isInitialized = true; 
                 
@@ -61,7 +61,6 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                 if (sketchRef.current) widgets.sketch.container = sketchRef.current;
                 if (measureRef.current) widgets.measurement.container = measureRef.current;
 
-                // Desconectamos el observador una vez creado exitosamente
                 if (resizeObserver) {
                     resizeObserver.disconnect();
                 }
@@ -76,7 +75,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                     clearTimeout(stabilityTimeout);
                 }
 
-                // Debounce de 300ms garantizando un layout estable en móvil antes de instanciar
+                // Debounce para asegurar que el tamaño es final en móvil antes de instanciar
                 stabilityTimeout = setTimeout(() => {
                     attemptInitialization();
                 }, 300);
@@ -159,12 +158,13 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
     const IconHome = () => <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>;
 
     return (
-        // [CORRECCIÓN QUIRÚRGICA FINAL] Retiramos el color rojo, los 500px fijos y flex: 'none'.
-        // En su lugar, el contenedor React utiliza flex: 1 y el viewDiv hereda de manera transparente todo
-        // el espacio flex que CSS (App.css) resuelve de manera sólida.
-        <div className="map-component-root" style={{ position: 'relative', display: 'flex', flexDirection: 'column', flex: 1 }}>
+        // [SOLUCIÓN RESPONSIVE DEFINITIVA] 
+        // 1. `.map-component-root` hereda el flex padre.
+        <div className="map-component-root" style={{ display: 'flex', flexDirection: 'column', flex: 1, position: 'relative' }}>
             
-            {/* Div del mapa limpio, flexible, 100% dependiente de la arquitectura CSS responsive externa */}
+            {/* 2. El lienzo del mapa asume un rol pasivo 'flex: 1' limpio.
+                Al depender enteramente de las cadenas Flexbox bien conformadas en App.css,
+                el colapso de tamaño en iOS/Safari ya no se presentará y no requiere de pixeles forzados. */}
             <div id="viewDiv" ref={mapDiv} style={{ flex: 1, width: '100%', position: 'relative' }}></div>
 
             {/* CONTENEDOR SUPERIOR DERECHO (HERRAMIENTAS) */}
