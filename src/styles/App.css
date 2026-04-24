@@ -4,9 +4,7 @@
 /* ==========================================================================
    ESTILOS GENERALES Y LAYOUT ESTRUCTURAL
    ========================================================================== */
-html,
-body,
-#root {
+html, body, #root {
   padding: 0;
   margin: 0;
   height: 100vh;
@@ -14,7 +12,7 @@ body,
   width: 100%;
   overflow: hidden;
   font-family: 'Montserrat', sans-serif;
-  background-color: #f8fafc;
+  background-color: #f8fafc; /* Fondo neutro general */
 }
 
 /* Contenedor maestro tipo aplicación de escritorio */
@@ -22,16 +20,16 @@ body,
   display: flex;
   flex-direction: column;
   height: 100vh;
-  height: 100dvh;
+  height: 100dvh; 
   width: 100%;
-  overflow: hidden;
+  overflow: hidden; 
 }
 
 /* ==========================================================================
    1. FRANJA SUPERIOR GOV.CO
    ========================================================================== */
 .gov-co-bar {
-  background-color: #3366cc;
+  background-color: #3366CC; /* Azul estándar oficial de GOV.CO */
   height: 32px;
   display: flex;
   align-items: center;
@@ -40,7 +38,7 @@ body,
 }
 
 .gov-co-logo {
-  height: 18px;
+  height: 18px; /* Proporción discreta y oficial */
   object-fit: contain;
 }
 
@@ -54,8 +52,8 @@ body,
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border-bottom: 3px solid #134174;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); /* Sombra suave de elevación */
+  border-bottom: 3px solid #134174; /* Ancla de identidad visual Cundinamarca */
   z-index: 100;
   flex-shrink: 0;
 }
@@ -64,8 +62,8 @@ body,
   display: flex;
   align-items: center;
   flex-grow: 1;
-  min-width: 0;
-  margin-right: 40px;
+  min-width: 0; 
+  margin-right: 40px; 
 }
 
 /* Botón menú hamburguesa (Oculto en escritorio) */
@@ -97,7 +95,7 @@ body,
   height: 38px;
   margin-right: 25px;
   padding-left: 20px;
-  border-left: 1px solid #e2e8f0;
+  border-left: 1px solid #e2e8f0; /* Divisor sutil entre logos */
   flex-shrink: 0;
   object-fit: contain;
 }
@@ -122,9 +120,9 @@ body,
 
 .header-search .esri-search {
   width: 100%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Limpieza del widget nativo */
   border-radius: 4px;
-  font-family: inherit;
+  font-family: inherit; /* Hereda Montserrat internamente si la API lo permite */
 }
 
 /* ==========================================================================
@@ -132,15 +130,14 @@ body,
    ========================================================================== */
 .main-layout {
   display: flex;
-  flex: 1;
+  flex: 1; /* Ocupa el espacio restante de la pantalla */
   position: relative;
   overflow: hidden;
-  min-height: 0; /* clave para Safari/WebKit */
+  min-height: 0; /* [ESTRUCTURAL VITAL] Previene que Flexbox colapse en móviles Safari/WebKit */
   min-width: 0;
-  height: 100%;
 }
 
-/* Envoltura estructural del sidebar */
+/* Envoltura Estructural del Sidebar (Actúa neutro en escritorio) */
 .sidebar-wrapper {
   height: 100%;
   display: flex;
@@ -154,7 +151,7 @@ body,
   height: 100%;
   background-color: #ffffff;
   border-right: 1px solid #e2e8f0;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.03);
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.03); /* Sombra lateral suave */
   padding: 25px 20px;
   display: flex;
   flex-direction: column;
@@ -192,7 +189,7 @@ body,
 #search-input:focus {
   outline: none;
   border-color: #134174;
-  box-shadow: 0 0 0 3px rgba(19, 65, 116, 0.1);
+  box-shadow: 0 0 0 3px rgba(19, 65, 116, 0.1); /* Anillo de foco accesible */
   background-color: #ffffff;
 }
 
@@ -205,19 +202,16 @@ body,
   margin-bottom: 20px;
   border: 1px solid transparent;
 }
-
 .status-message.loading {
   background-color: #f1f5f9;
   color: #475569;
   border-color: #e2e8f0;
 }
-
 .status-message.error {
   background-color: #fef2f2;
   color: #b91c1c;
   border-color: #fecaca;
 }
-
 .status-message.empty {
   background-color: #f8fafc;
   color: #64748b;
@@ -231,7 +225,7 @@ body,
 #card-container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 20px; 
   padding-bottom: 20px;
 }
 
@@ -240,9 +234,10 @@ body,
   height: 190px;
   cursor: pointer;
   position: relative;
-  z-index: 1;
+  z-index: 1; 
 }
 
+/* Elevación jerárquica para que la sombra no quede pisada por la tarjeta inferior */
 .card:hover {
   z-index: 10;
 }
@@ -254,19 +249,19 @@ body,
   text-align: center;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 8px;
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   border: 1px solid #e2e8f0;
   background-color: #ffffff;
-  overflow: hidden;
+  overflow: hidden; 
 }
 
+/* Elevación y sombra marcada al pasar el mouse */
 .card:hover .card-inner {
   transform: translateY(-4px);
-  box-shadow: 0 12px 20px -5px rgba(19, 65, 116, 0.15);
+  box-shadow: 0 12px 20px -5px rgba(19, 65, 116, 0.15); /* Tono azul institucional en la sombra */
 }
 
+/* --- CARA FRONTAL VISIBLE --- */
 .card-front {
   width: 100%;
   height: 100%;
@@ -279,9 +274,10 @@ body,
   height: 135px;
   object-fit: cover;
   border-bottom: 1px solid #f1f5f9;
-  transition: transform 0.5s ease;
+  transition: transform 0.5s ease; 
 }
 
+/* Zoom suave sobre la imagen al pasar el mouse por la tarjeta */
 .card:hover .card-front img {
   transform: scale(1.05);
 }
@@ -298,18 +294,19 @@ body,
   transition: color 0.3s ease;
 }
 
+/* Refuerzo visual del texto al hacer hover */
 .card:hover .card-front .card-title {
   color: #134174;
 }
 
-/* Cara trasera como overlay estático */
+/* --- CARA TRASERA COMO OVERLAY ESTÁTICO --- */
 .card-back {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(19, 65, 116, 0.95);
+  background-color: rgba(19, 65, 116, 0.95); /* Azul institucional semitransparente */
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -320,11 +317,12 @@ body,
   text-align: center;
   opacity: 0;
   transition: opacity 0.3s ease;
-  z-index: 5;
+  z-index: 5; /* Por encima de la tarjeta frontal */
   box-sizing: border-box;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px); /* Desenfoca ligeramente el contenido trasero (imagen) */
 }
 
+/* Limita el texto a 6 líneas para evitar desbordes en resúmenes muy largos */
 .card-back p {
   margin: 0;
   display: -webkit-box;
@@ -334,6 +332,7 @@ body,
   overflow: hidden;
 }
 
+/* El overlay aparece de forma limpia al interactuar con la tarjeta */
 .card:hover .card-back {
   opacity: 1;
 }
@@ -386,6 +385,7 @@ body,
   gap: 10px;
 }
 
+/* Botón base */
 .pill-button {
   padding: 12px 20px;
   border: none;
@@ -399,6 +399,10 @@ body,
   transition: all 0.2s ease;
   width: 100%;
   box-sizing: border-box;
+}
+
+/* Botón Principal (Añadir al mapa) */
+.pill-button {
   background-color: #134174;
   color: #ffffff;
   box-shadow: 0 2px 4px rgba(19, 65, 116, 0.2);
@@ -410,8 +414,9 @@ body,
   box-shadow: 0 4px 6px rgba(19, 65, 116, 0.3);
 }
 
+/* Botón Secundario (Volver) */
 .pill-button.secondary {
-  background-color: #f1f5f9;
+  background-color: #f1f5f9; 
   color: #475569;
   box-shadow: none;
   border: 1px solid #cbd5e1;
@@ -423,6 +428,7 @@ body,
   transform: translateY(-1px);
 }
 
+/* Botón Terciario/Acción (Descargar GDB) */
 a.pill-button {
   background-color: #0ea5e9;
   box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);
@@ -433,70 +439,63 @@ a.pill-button:hover {
 }
 
 /* ==========================================================================
-   7. ÁREA DE MAPA Y ARQUITECTURA DE CONTENEDORES
+   7. ÁREA DE MAPA Y ARQUITECTURA DE CONTENEDORES (ESTRUCTURAL Y RESPONSIVE)
    ========================================================================== */
 
-/*
-  Esta es la corrección clave:
-  - toda la cadena del mapa resuelve altura real
-  - #viewDiv recibe height:100% y además un piso mínimo razonable
-  - así evitamos el colapso que la prueba de 500px evidenció
+/* Para que el div de mapa ocupe la altura restante real sin usar alturas fijas, 
+   creamos una cadena estricta de Flexbox. Cada contenedor padre debe usar 'flex: 1'
+   y 'min-height: 0'. Esto transmite la altura del viewport libre hasta el mapa,
+   previniendo el colapso a 0px en navegadores móviles. 
 */
 
 .map-wrapper {
+  flex: 1; 
+  position: relative;
+  display: flex; 
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0; 
+  overflow: hidden;
+}
+
+.map-component-root {
   flex: 1;
   position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 0;
+  min-height: 0; 
   width: 100%;
   height: 100%;
-  overflow: hidden;
 }
 
-.map-component-root {
-  flex: 1 1 auto;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
+/* El lienzo real de ArcGIS */
 #viewDiv {
-  flex: 1 1 auto;
+  flex: 1; /* Al integrarlo puramente a Flexbox, hereda limpiamente el 100% dinámico */
   width: 100%;
-  height: 100%;
-  min-height: 320px; /* piso mínimo para evitar colapso en móviles */
   position: relative;
-  display: block;
-  background-color: transparent;
-  overflow: hidden;
+  min-height: 0;
+  background-color: #f8fafc; /* Color neutro institucional para el fondo de carga */
 }
 
 .esri-ui {
   z-index: 45;
-  font-family: inherit;
+  font-family: inherit; /* Hereda Montserrat si la API lo permite */
 }
 
 /* ==========================================================================
    8. NUEVOS CONTROLES CUSTOM DEL MAPA
    ========================================================================== */
 
-/* Limpieza de UI nativa de ArcGIS */
+/* Limpieza absoluta de la UI de ArcGIS (Nos quedamos solo con Atribución) */
 .esri-ui .esri-component {
   display: none !important;
 }
-
 .esri-ui .esri-attribution {
   display: block !important;
 }
 
-/* Toolbars flotantes */
+/* Toolbars Flotantes */
 .map-toolbar {
   position: absolute;
   right: 20px;
@@ -504,7 +503,7 @@ a.pill-button:hover {
   flex-direction: column;
   background: white;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   border: 1px solid #e2e8f0;
   z-index: 50;
   overflow: hidden;
@@ -518,7 +517,7 @@ a.pill-button:hover {
   bottom: 30px;
 }
 
-/* Botones de toolbar */
+/* Botones de Toolbar */
 .toolbar-btn {
   background: transparent;
   border: none;
@@ -547,17 +546,17 @@ a.pill-button:hover {
   color: white;
 }
 
-/* Paneles flotantes */
+/* Paneles Flotantes de Contenido */
 .floating-panel {
   position: absolute;
   top: 20px;
-  right: 80px;
+  right: 80px; 
   width: 320px;
   max-height: calc(100vh - 60px);
-  max-height: calc(100dvh - 60px);
+  max-height: calc(100dvh - 60px); 
   background: white;
   border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
   border: 1px solid #e2e8f0;
   z-index: 50;
   overflow-y: auto;
@@ -605,7 +604,7 @@ a.pill-button:hover {
   margin-top: 10px;
 }
 
-/* Componentes menores de herramientas */
+/* Componentes menores de Herramientas */
 .measure-btns {
   display: flex;
   gap: 10px;
@@ -629,7 +628,6 @@ a.pill-button:hover {
   box-shadow: none !important;
   background: transparent !important;
 }
-
 .floating-panel .esri-widget__heading {
   color: #1e293b;
   font-family: inherit;
@@ -639,12 +637,15 @@ a.pill-button:hover {
    9. RESPONSIVE Y ADAPTABILIDAD MÓVIL
    ========================================================================== */
 
+/* Overlay oscuro activo en modo móvil */
 .mobile-overlay {
-  display: none;
+  display: none; /* Se oculta por defecto en escritorio */
 }
 
-/* --- TABLET Y MÓVIL (<= 900px) --- */
+/* --- PUNTO DE QUIEBRE: TABLET Y MÓVIL (<= 900px) --- */
 @media screen and (max-width: 900px) {
+  
+  /* 1. Header se vuelve en formato columna para no aplastar elementos */
   .institutional-header {
     height: auto;
     flex-direction: column;
@@ -658,12 +659,14 @@ a.pill-button:hover {
     margin-right: 0;
   }
 
+  /* Mostrar botón menú hamburguesa */
   .mobile-menu-btn {
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
+  /* Ajuste de buscador para tomar ancho completo */
   .header-search {
     width: 100%;
   }
@@ -672,37 +675,33 @@ a.pill-button:hover {
     font-size: 1.15rem;
   }
 
-  .logo-gov {
-    height: 40px;
-    margin-right: 15px;
-  }
+  .logo-gov { height: 40px; margin-right: 15px; }
+  .logo-idee { height: 32px; padding-left: 15px; margin-right: 15px; }
 
-  .logo-idee {
-    height: 32px;
-    padding-left: 15px;
-    margin-right: 15px;
-  }
-
+  /* 2. Catálogo / Sidebar se vuelve Drawer flotante */
   .sidebar-wrapper {
     position: absolute;
     top: 0;
     left: 0;
     height: 100%;
     z-index: 60;
+    /* Comienza fuera de la pantalla a la izquierda */
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
+  /* Clase dinámica agregada por React cuando se abre en móvil */
   .sidebar-wrapper.open {
     transform: translateX(0);
   }
 
   #sidebar {
-    width: 85vw;
+    width: 85vw; /* Ocupa gran parte de la pantalla pero permite ver el mapa de fondo */
     max-width: 360px;
-    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.15);
+    box-shadow: 4px 0 15px rgba(0,0,0,0.15); /* Sombra intensa para indicar elevación */
   }
 
+  /* 3. Overlay (Fondo oscuro al abrir el sidebar) */
   .mobile-overlay {
     display: block;
     position: absolute;
@@ -721,37 +720,21 @@ a.pill-button:hover {
     from { opacity: 0; }
     to { opacity: 1; }
   }
-
-  /* Refuerzo móvil del mapa */
-  .main-layout,
-  .map-wrapper,
-  .map-component-root {
-    height: 100%;
-  }
-
-  #viewDiv {
-    min-height: clamp(320px, calc(100dvh - 180px), 1000px);
-  }
 }
 
-/* --- MÓVIL PEQUEÑO (<= 768px) --- */
+/* --- PUNTO DE QUIEBRE: MÓVIL PEQUEÑO (<= 768px) --- */
 @media screen and (max-width: 768px) {
-  .logo-gov {
-    height: 35px;
-    margin-right: 10px;
-  }
-
-  .logo-idee {
-    height: 26px;
-    padding-left: 10px;
-    margin-right: 10px;
-  }
-
+  
+  /* Compactar más los logos para evitar desbordes */
+  .logo-gov { height: 35px; margin-right: 10px; }
+  .logo-idee { height: 26px; padding-left: 10px; margin-right: 10px; }
+  
   .header-title {
     font-size: 1rem;
-    white-space: normal;
+    white-space: normal; /* Permite salto de línea si es muy largo */
   }
 
+  /* 4. Adaptación de Toolbars y Paneles del Mapa */
   .map-toolbar {
     right: 10px;
   }
@@ -761,7 +744,8 @@ a.pill-button:hover {
   }
 
   .map-toolbar.bottom-right {
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    /* Safe Area Mobile - Flota respetando la barra del navegador inferior */
+    bottom: calc(25px + env(safe-area-inset-bottom, 0px));
   }
 
   .toolbar-btn {
@@ -769,10 +753,11 @@ a.pill-button:hover {
     height: 40px;
   }
 
+  /* El panel flotante debe ajustar su ancho para no salir de pantalla */
   .floating-panel {
-    right: 60px;
+    right: 60px; /* Separado de la toolbar reducida */
     top: 10px;
-    width: calc(100vw - 80px);
+    width: calc(100vw - 80px); /* Usa casi todo el espacio menos los márgenes y toolbars */
     max-width: 320px;
     max-height: calc(100dvh - 140px - env(safe-area-inset-bottom, 0px));
     padding: 15px;
@@ -783,8 +768,9 @@ a.pill-button:hover {
   }
 }
 
-/* --- MINI (<= 480px) --- */
+/* --- PUNTO DE QUIEBRE: MINI (<= 480px) --- */
 @media screen and (max-width: 480px) {
+  /* En pantallas minúsculas escondemos el título para priorizar escudos e input */
   .header-title {
     display: none;
   }
