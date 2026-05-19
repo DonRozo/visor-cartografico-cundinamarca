@@ -17,22 +17,21 @@ const normalizeText = (text?: string): string => {
     return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 };
 
-// Función auxiliar para mapear temporalmente un LogicalDataset a un ArcGISItem.
-// Solo permitimos convertir aquellos que tengan un Feature Service, garantizando
-// la compatibilidad con la lógica actual de agregar capas operativas al mapa.
+// Función auxiliar para mapear un LogicalDataset a un ArcGISItem de visualización.
+// Priorizamos Vector Tile para mapa y conservamos Feature Service como fallback.
 const mapLogicalDatasetToItem = (ld: LogicalDataset): ArcGISItem | null => {
-    // Exigimos estrictamente que exista el Feature Service. 
-    // Ignoramos temporalmente los datasets que solo tienen Vector Tile o GDB.
-    if (!ld.featureService) return null;
+    const preferredMapResource = ld.vectorTile || ld.featureService;
+    if (!preferredMapResource) return null;
 
     return {
-        id: ld.featureService.id,
+        id: preferredMapResource.id,
         title: ld.title, // Usamos el título consolidado y limpio sin sufijos
-        type: ld.featureService.type,
-        url: ld.featureService.url,
+        type: preferredMapResource.type,
+        url: preferredMapResource.url,
         thumbnail: ld.thumbnail,
         snippet: ld.snippet,
-        description: ld.description
+        description: ld.description,
+        fallbackFeatureService: ld.vectorTile && ld.featureService ? ld.featureService : undefined
     };
 };
 
@@ -47,7 +46,7 @@ const Catalog: React.FC<CatalogProps> = ({ data, isLoading, hasError, onAddLayer
         if (data.logicalDatasets && data.logicalDatasets.length > 0) {
             return data.logicalDatasets
                 .map(mapLogicalDatasetToItem)
-                // Eliminamos los nulos (datasets sin Feature Service)
+                // Eliminamos los nulos (datasets sin recurso visualizable)
                 .filter((item): item is ArcGISItem => item !== null);
         }
         // Fallback robusto a la estructura original si la nueva no viene en los datos

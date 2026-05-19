@@ -2,6 +2,7 @@ import WebMap from "@arcgis/core/WebMap";
 import MapView from "@arcgis/core/views/MapView";
 import esriRequest from "@arcgis/core/request";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
+import VectorTileLayer from "@arcgis/core/layers/VectorTileLayer";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
 import Extent from "@arcgis/core/geometry/Extent";
@@ -127,16 +128,25 @@ export async function addLocalGeoJSON(map: WebMap, view: MapView, file: File) {
     });
 }
 
-// Lógica original conservada para enfocar capas
-async function focusOnLayers(view: MapView, layers: FeatureLayer[]) {
+type FocusableCatalogLayer = FeatureLayer | VectorTileLayer;
+
+// Lógica para enfocar capas de catálogo, con queryExtent para FeatureLayer
+// y fullExtent para VectorTileLayer.
+async function focusOnLayers(view: MapView, layers: FocusableCatalogLayer[]) {
     if (!layers || layers.length === 0) return;
     for (const layer of layers) {
         try {
             await layer.when();
-            const extentResponse = await layer.queryExtent();
-            if (extentResponse && extentResponse.count > 0 && extentResponse.extent) {
-                view.goTo(extentResponse.extent);
-                return; 
+            if (layer.type === "feature") {
+                const extentResponse = await layer.queryExtent();
+                if (extentResponse && extentResponse.count > 0 && extentResponse.extent) {
+                    view.goTo(extentResponse.extent);
+                    return; 
+                }
+            }
+            if (layer.fullExtent) {
+                view.goTo(layer.fullExtent);
+                return;
             }
         } catch (error) {
             console.warn(`No se pudo calcular el extent exacto para la capa ${layer.title}`);
@@ -148,15 +158,7 @@ async function focusOnLayers(view: MapView, layers: FeatureLayer[]) {
     }
 }
 
-// Lógica intacta para añadir capas desde el catálogo al WebMap
-export async function addLayerToMap(map: WebMap, view: MapView, item: ArcGISItem) {
-    const existingLayersCollection = map.layers.filter(lyr => (lyr as any).groupId === item.id);
-    if (existingLayersCollection.length > 0) {
-        const existingLayers = existingLayersCollection.toArray() as FeatureLayer[];
-        focusOnLayers(view, existingLayers);
-        return;
-    }
-
+async function addFeatureServiceToMap(map: WebMap, view: MapView, item: ArcGISItem, groupId: string = item.id) {
     try {
         const serviceInfo = await esriRequest(item.url, { query: { f: "json" }, responseType: "json" });
         if (serviceInfo.data.layers && serviceInfo.data.layers.length > 0) {
@@ -166,7 +168,7 @@ export async function addLayerToMap(map: WebMap, view: MapView, item: ArcGISItem
                     title: layerInfo.name,
                     id: `${item.id}_${layerInfo.id}`
                 });
-                (fl as any).groupId = item.id;
+                (fl as any).groupId = groupId;
                 return fl;
             });
             map.addMany(layersToAdd);
@@ -177,11 +179,53 @@ export async function addLayerToMap(map: WebMap, view: MapView, item: ArcGISItem
                 id: item.id,
                 title: item.title
             });
-            (singleLayer as any).groupId = item.id;
+            (singleLayer as any).groupId = groupId;
             map.add(singleLayer);
             focusOnLayers(view, [singleLayer]);
         }
     } catch (err) {
         console.error("Error al añadir la capa:", err);
     }
+}
+
+async function addVectorTileToMap(map: WebMap, view: MapView, item: ArcGISItem) {
+    const vectorTileLayer = new VectorTileLayer({
+        portalItem: { id: item.id },
+        id: item.id,
+        title: item.title
+    });
+    (vectorTileLayer as any).groupId = item.id;
+
+    try {
+        map.add(vectorTileLayer);
+        await vectorTileLayer.when();
+        focusOnLayers(view, [vectorTileLayer]);
+    } catch (err) {
+        console.warn("No se pudo cargar el Vector Tile Service. Se intentará cargar el Feature Service asociado.", err);
+        if (map.layers.includes(vectorTileLayer)) {
+            map.remove(vectorTileLayer);
+        }
+        if (item.fallbackFeatureService) {
+            await addFeatureServiceToMap(map, view, item.fallbackFeatureService, item.id);
+            return;
+        }
+        console.error("No existe Feature Service de respaldo para el Vector Tile Service:", item.id);
+    }
+}
+
+// Lógica para añadir capas desde el catálogo al WebMap
+export async function addLayerToMap(map: WebMap, view: MapView, item: ArcGISItem) {
+    const existingLayersCollection = map.layers.filter(lyr => (lyr as any).groupId === item.id);
+    if (existingLayersCollection.length > 0) {
+        const existingLayers = existingLayersCollection.toArray() as FocusableCatalogLayer[];
+        focusOnLayers(view, existingLayers);
+        return;
+    }
+
+    if (item.type === "Vector Tile Service") {
+        await addVectorTileToMap(map, view, item);
+        return;
+    }
+
+    await addFeatureServiceToMap(map, view, item);
 }

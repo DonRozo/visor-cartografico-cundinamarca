@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArcGISItem } from '../../types';
-import { PORTAL_URL, OPEN_DATA_URL_BASE } from '../../config/constants';
+import { PORTAL_URL } from '../../config/constants';
 
 // Definición de las propiedades que recibe el componente
 interface ItemDetailProps {
@@ -20,6 +20,22 @@ const ItemDetail: React.FC<ItemDetailProps> = ({ item, gdbId, onBack, onAdd }) =
     // Determinamos el contenido de la descripción respetando la prioridad exigida
     const descriptionContent = item.description || item.snippet || "No hay descripción disponible.";
 
+    const buildGdbDownloadUrl = (gdbItemId: string): string =>
+        `${PORTAL_URL}/sharing/rest/content/items/${encodeURIComponent(gdbItemId)}/data`;
+
+    const handleDownloadGdb = (): void => {
+        if (!gdbId) {
+            return;
+        }
+
+        const temporaryLink = document.createElement('a');
+        temporaryLink.href = buildGdbDownloadUrl(gdbId);
+        temporaryLink.download = '';
+        document.body.appendChild(temporaryLink);
+        temporaryLink.click();
+        document.body.removeChild(temporaryLink);
+    };
+
     return (
         <div id="detail-pane" style={{ display: 'block' }}>
             <img src={thumbnailUrl} alt={item.title} className="detail-thumbnail" />
@@ -36,17 +52,17 @@ const ItemDetail: React.FC<ItemDetailProps> = ({ item, gdbId, onBack, onAdd }) =
             />
             
             <div className="metadata-buttons">
-                <button className="pill-button" onClick={() => onAdd(item)}>
+                <button type="button" className="pill-button" onClick={() => onAdd(item)}>
                     Añadir al Mapa
                 </button>
                 
                 {gdbId && (
-                    <a href={`${OPEN_DATA_URL_BASE}${gdbId}/about`} className="pill-button" target="_blank" rel="noreferrer">
+                    <button type="button" className="pill-button" onClick={handleDownloadGdb}>
                         Descargar GDB
-                    </a>
+                    </button>
                 )}
                 
-                <button className="pill-button secondary" onClick={onBack}>
+                <button type="button" className="pill-button secondary" onClick={onBack}>
                     ← Volver a la búsqueda
                 </button>
             </div>

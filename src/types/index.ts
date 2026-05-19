@@ -3,11 +3,12 @@
 export interface ArcGISItem {
     id: string;
     title: string;
-    type: string;
+    type: ResourceType;
     thumbnail?: string;
     snippet?: string;
     description?: string;
     url: string;
+    fallbackFeatureService?: ArcGISItem;
 }
 
 export interface CatalogData {
