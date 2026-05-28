@@ -7,7 +7,7 @@ import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
 import Extent from "@arcgis/core/geometry/Extent";
 
-// Importación de Widgets Nativos
+// Importacion de Widgets Nativos
 import Search from "@arcgis/core/widgets/Search";
 import BasemapGallery from "@arcgis/core/widgets/BasemapGallery";
 import Measurement from "@arcgis/core/widgets/Measurement";
@@ -18,6 +18,33 @@ import Sketch from "@arcgis/core/widgets/Sketch";
 
 import { WEB_MAP_ID, PRINT_SERVICE_URL } from "../../config/constants";
 import { ArcGISItem, MapWidgets } from "../../types";
+
+interface ServiceLayerInfo {
+    id: number;
+    name: string;
+}
+
+type CatalogLayerWithGroup = __esri.Layer & { groupId?: string };
+type FocusableCatalogLayer = FeatureLayer | VectorTileLayer;
+
+const WORLD_GEOGRAPHIC_WIDTH = 300;
+const WORLD_GEOGRAPHIC_HEIGHT = 140;
+const WORLD_WEB_MERCATOR_WIDTH = 35000000;
+const WORLD_WEB_MERCATOR_HEIGHT = 25000000;
+
+const CUNDINAMARCA_GEOGRAPHIC_BOUNDS = {
+    xmin: -75.8,
+    ymin: 2.8,
+    xmax: -72.3,
+    ymax: 6.2
+};
+
+const CUNDINAMARCA_WEB_MERCATOR_BOUNDS = {
+    xmin: -8438000,
+    ymin: 311000,
+    xmax: -8048000,
+    ymax: 692000
+};
 
 export function initializeMap(container: HTMLDivElement): { 
     map: WebMap, 
@@ -31,7 +58,7 @@ export function initializeMap(container: HTMLDivElement): {
         portalItem: { id: WEB_MAP_ID }
     });
 
-    // 2. Leemos la URL por si el mapa fue "Compartido" con un extent específico
+    // 2. Leemos la URL por si el mapa fue "Compartido" con un extent especifico
     const urlParams = new URLSearchParams(window.location.search);
     const lonParam = urlParams.get("lon");
     const latParam = urlParams.get("lat");
@@ -50,12 +77,12 @@ export function initializeMap(container: HTMLDivElement): {
         map: map,
         center: initialCenter,
         zoom: initialZoom,
-        // [CORRECCIÓN FINAL] Garantía estricta de que el mapa NO usa padding residual
-        // y se ajusta dinámicamente al 100% del contenedor Flexbox, esencial en móvil.
+        // Garantia estricta de que el mapa NO usa padding residual y se ajusta
+        // dinamicamente al 100% del contenedor Flexbox, esencial en movil.
         ui: { components: ["attribution"] } 
     });
 
-    // 3. Limpieza y creación del buscador en el Header
+    // 3. Limpieza y creacion del buscador en el Header
     const searchContainer = document.getElementById("search-widget-container");
     if (searchContainer) searchContainer.innerHTML = "";
     new Search({ view: view, container: "search-widget-container" });
@@ -64,7 +91,7 @@ export function initializeMap(container: HTMLDivElement): {
     const graphicsLayer = new GraphicsLayer({ title: "Capa de Dibujo (Temporal)" });
     map.add(graphicsLayer);
 
-    // 5. Creación de widgets en memoria (SIN añadirlos a view.ui)
+    // 5. Creacion de widgets en memoria (SIN anadirlos a view.ui)
     const basemapGallery = new BasemapGallery({ view: view });
     const print = new Print({ view: view, printServiceUrl: PRINT_SERVICE_URL });
     const measurement = new Measurement({ view: view });
@@ -79,7 +106,7 @@ export function initializeMap(container: HTMLDivElement): {
     // Empaquetamos los widgets para enviarlos a React
     const widgets: MapWidgets = { layerList, legend, basemapGallery, print, measurement, sketch };
 
-    // 6. Lógica Robusta de Historial de Zoom (Zoom Pre)
+    // 6. Logica Robusta de Historial de Zoom (Zoom Pre)
     let extentHistory: Extent[] = [];
     let currentIndex = -1;
     let isNavigatingHistory = false;
@@ -115,7 +142,7 @@ export function initializeMap(container: HTMLDivElement): {
     return { map, view, widgets, zoomPre, zoomHome };
 }
 
-// Función para manejar GeoJSON local
+// Funcion para manejar GeoJSON local
 export async function addLocalGeoJSON(map: WebMap, view: MapView, file: File) {
     const url = URL.createObjectURL(file);
     const layer = new GeoJSONLayer({
@@ -124,67 +151,205 @@ export async function addLocalGeoJSON(map: WebMap, view: MapView, file: File) {
     });
     map.add(layer);
     layer.when(() => {
-        if (layer.fullExtent) view.goTo(layer.fullExtent);
+        if (isValidOperationalExtent(layer.fullExtent)) {
+            view.goTo(layer.fullExtent);
+        }
     });
 }
 
-type FocusableCatalogLayer = FeatureLayer | VectorTileLayer;
+function hasFiniteExtentCoordinates(extent: Extent): boolean {
+    return [extent.xmin, extent.xmax, extent.ymin, extent.ymax].every(Number.isFinite);
+}
 
-// Lógica para enfocar capas de catálogo, con queryExtent para FeatureLayer
-// y fullExtent para VectorTileLayer.
-async function focusOnLayers(view: MapView, layers: FocusableCatalogLayer[]) {
-    if (!layers || layers.length === 0) return;
+function intersectsBounds(
+    extent: Extent,
+    bounds: { xmin: number; ymin: number; xmax: number; ymax: number }
+): boolean {
+    return extent.xmin <= bounds.xmax &&
+        extent.xmax >= bounds.xmin &&
+        extent.ymin <= bounds.ymax &&
+        extent.ymax >= bounds.ymin;
+}
+
+function isGeographicExtent(extent: Extent): boolean {
+    const wkid = extent.spatialReference?.wkid;
+    return Boolean(extent.spatialReference?.isGeographic) ||
+        wkid === 4326 ||
+        (
+            extent.xmin >= -180 &&
+            extent.xmax <= 180 &&
+            extent.ymin >= -90 &&
+            extent.ymax <= 90
+        );
+}
+
+function isWebMercatorExtent(extent: Extent): boolean {
+    const wkid = extent.spatialReference?.wkid;
+    return Boolean(extent.spatialReference?.isWebMercator) || wkid === 3857 || wkid === 102100 || wkid === 102113;
+}
+
+function isWorldLikeExtent(extent: Extent): boolean {
+    const width = extent.width;
+    const height = extent.height;
+
+    if (isGeographicExtent(extent)) {
+        return width >= WORLD_GEOGRAPHIC_WIDTH || height >= WORLD_GEOGRAPHIC_HEIGHT;
+    }
+
+    if (isWebMercatorExtent(extent)) {
+        return width >= WORLD_WEB_MERCATOR_WIDTH || height >= WORLD_WEB_MERCATOR_HEIGHT;
+    }
+
+    return false;
+}
+
+function isOutsideExpectedScope(extent: Extent): boolean {
+    if (isGeographicExtent(extent)) {
+        return !intersectsBounds(extent, CUNDINAMARCA_GEOGRAPHIC_BOUNDS);
+    }
+
+    if (isWebMercatorExtent(extent)) {
+        return !intersectsBounds(extent, CUNDINAMARCA_WEB_MERCATOR_BOUNDS);
+    }
+
+    return false;
+}
+
+export function isValidOperationalExtent(extent: Extent | null | undefined): extent is Extent {
+    if (!extent) return false;
+    if (!hasFiniteExtentCoordinates(extent)) return false;
+    if (extent.width <= 0 || extent.height <= 0) return false;
+    if (isWorldLikeExtent(extent)) return false;
+    if (isOutsideExpectedScope(extent)) return false;
+
+    return true;
+}
+
+function unionExtents(extents: Extent[]): Extent | null {
+    if (extents.length === 0) return null;
+
+    try {
+        return extents.slice(1).reduce((accumulatedExtent, extent) => {
+            return accumulatedExtent.union(extent) as Extent;
+        }, extents[0].clone());
+    } catch (error) {
+        console.warn("No se pudo unir la extension de las subcapas. Se usara la primera extension valida.", error);
+        return extents[0];
+    }
+}
+
+async function getFeatureLayerExtent(layer: FeatureLayer): Promise<Extent | null> {
+    try {
+        await layer.when();
+        const extentResponse = await layer.queryExtent();
+
+        if (extentResponse && extentResponse.count > 0 && isValidOperationalExtent(extentResponse.extent)) {
+            return extentResponse.extent;
+        }
+    } catch (error) {
+        console.warn(`No se pudo calcular el extent exacto para la capa ${layer.title}.`, error);
+    }
+
+    return null;
+}
+
+async function getFeatureLayersExtent(layers: FeatureLayer[]): Promise<Extent | null> {
+    const validExtents: Extent[] = [];
+
     for (const layer of layers) {
-        try {
-            await layer.when();
-            if (layer.type === "feature") {
-                const extentResponse = await layer.queryExtent();
-                if (extentResponse && extentResponse.count > 0 && extentResponse.extent) {
-                    view.goTo(extentResponse.extent);
-                    return; 
-                }
-            }
-            if (layer.fullExtent) {
-                view.goTo(layer.fullExtent);
-                return;
-            }
-        } catch (error) {
-            console.warn(`No se pudo calcular el extent exacto para la capa ${layer.title}`);
+        const extent = await getFeatureLayerExtent(layer);
+        if (extent) {
+            validExtents.push(extent);
         }
     }
-    const firstLayer = layers[0];
-    if (firstLayer && firstLayer.fullExtent) {
-        view.goTo(firstLayer.fullExtent);
+
+    return unionExtents(validExtents);
+}
+
+async function getVectorTileExtent(layer: VectorTileLayer): Promise<Extent | null> {
+    try {
+        await layer.when();
+        return isValidOperationalExtent(layer.fullExtent) ? layer.fullExtent : null;
+    } catch (error) {
+        console.warn(`No se pudo validar el extent del Vector Tile ${layer.title}.`, error);
+        return null;
+    }
+}
+
+async function focusOnExtent(view: MapView, extent: Extent | null) {
+    if (!isValidOperationalExtent(extent)) return;
+
+    try {
+        await view.goTo(extent);
+    } catch (error) {
+        console.warn("No se pudo enfocar la extension calculada.", error);
+    }
+}
+
+// Logica para enfocar capas de catalogo: queryExtent para FeatureLayer y
+// fullExtent validado estrictamente solo cuando no hay Feature Service disponible.
+async function focusOnLayers(view: MapView, layers: FocusableCatalogLayer[]) {
+    if (!layers || layers.length === 0) return;
+
+    const featureLayers = layers.filter((layer): layer is FeatureLayer => layer.type === "feature");
+    const featureExtent = await getFeatureLayersExtent(featureLayers);
+    if (featureExtent) {
+        await focusOnExtent(view, featureExtent);
+        return;
+    }
+
+    const vectorLayers = layers.filter((layer): layer is VectorTileLayer => layer.type === "vector-tile");
+    for (const layer of vectorLayers) {
+        const vectorExtent = await getVectorTileExtent(layer);
+        if (vectorExtent) {
+            await focusOnExtent(view, vectorExtent);
+            return;
+        }
+    }
+}
+
+async function createFeatureLayersFromService(item: ArcGISItem, groupId: string = item.id): Promise<FeatureLayer[]> {
+    const serviceInfo = await esriRequest(item.url, { query: { f: "json" }, responseType: "json" });
+    const serviceLayers = serviceInfo.data.layers as ServiceLayerInfo[] | undefined;
+
+    if (serviceLayers && serviceLayers.length > 0) {
+        return serviceLayers.map((layerInfo) => {
+            const featureLayer = new FeatureLayer({
+                url: `${item.url}/${layerInfo.id}`,
+                title: layerInfo.name,
+                id: `${item.id}_${layerInfo.id}`
+            });
+            (featureLayer as CatalogLayerWithGroup).groupId = groupId;
+            return featureLayer;
+        });
+    }
+
+    const singleLayer = new FeatureLayer({
+        url: item.url,
+        id: item.id,
+        title: item.title
+    });
+    (singleLayer as CatalogLayerWithGroup).groupId = groupId;
+    return [singleLayer];
+}
+
+async function getFeatureServiceExtent(item: ArcGISItem): Promise<Extent | null> {
+    try {
+        const layers = await createFeatureLayersFromService(item);
+        return getFeatureLayersExtent(layers);
+    } catch (error) {
+        console.warn(`No se pudo calcular el extent del Feature Service ${item.title}.`, error);
+        return null;
     }
 }
 
 async function addFeatureServiceToMap(map: WebMap, view: MapView, item: ArcGISItem, groupId: string = item.id) {
     try {
-        const serviceInfo = await esriRequest(item.url, { query: { f: "json" }, responseType: "json" });
-        if (serviceInfo.data.layers && serviceInfo.data.layers.length > 0) {
-            const layersToAdd = serviceInfo.data.layers.map((layerInfo: any) => {
-                const fl = new FeatureLayer({
-                    url: `${item.url}/${layerInfo.id}`,
-                    title: layerInfo.name,
-                    id: `${item.id}_${layerInfo.id}`
-                });
-                (fl as any).groupId = groupId;
-                return fl;
-            });
-            map.addMany(layersToAdd);
-            focusOnLayers(view, layersToAdd);
-        } else {
-            const singleLayer = new FeatureLayer({
-                url: item.url,
-                id: item.id,
-                title: item.title
-            });
-            (singleLayer as any).groupId = groupId;
-            map.add(singleLayer);
-            focusOnLayers(view, [singleLayer]);
-        }
+        const layersToAdd = await createFeatureLayersFromService(item, groupId);
+        map.addMany(layersToAdd);
+        await focusOnLayers(view, layersToAdd);
     } catch (err) {
-        console.error("Error al añadir la capa:", err);
+        console.error("Error al anadir la capa:", err);
     }
 }
 
@@ -194,14 +359,21 @@ async function addVectorTileToMap(map: WebMap, view: MapView, item: ArcGISItem) 
         id: item.id,
         title: item.title
     });
-    (vectorTileLayer as any).groupId = item.id;
+    (vectorTileLayer as CatalogLayerWithGroup).groupId = item.id;
 
     try {
         map.add(vectorTileLayer);
         await vectorTileLayer.when();
-        focusOnLayers(view, [vectorTileLayer]);
+
+        if (item.fallbackFeatureService) {
+            const featureExtent = await getFeatureServiceExtent(item.fallbackFeatureService);
+            await focusOnExtent(view, featureExtent);
+            return;
+        }
+
+        await focusOnLayers(view, [vectorTileLayer]);
     } catch (err) {
-        console.warn("No se pudo cargar el Vector Tile Service. Se intentará cargar el Feature Service asociado.", err);
+        console.warn("No se pudo cargar el Vector Tile Service. Se intentara cargar el Feature Service asociado.", err);
         if (map.layers.includes(vectorTileLayer)) {
             map.remove(vectorTileLayer);
         }
@@ -213,12 +385,18 @@ async function addVectorTileToMap(map: WebMap, view: MapView, item: ArcGISItem) 
     }
 }
 
-// Lógica para añadir capas desde el catálogo al WebMap
+// Logica para anadir capas desde el catalogo al WebMap
 export async function addLayerToMap(map: WebMap, view: MapView, item: ArcGISItem) {
-    const existingLayersCollection = map.layers.filter(lyr => (lyr as any).groupId === item.id);
+    const existingLayersCollection = map.layers.filter(lyr => (lyr as CatalogLayerWithGroup).groupId === item.id);
     if (existingLayersCollection.length > 0) {
+        if (item.type === "Vector Tile Service" && item.fallbackFeatureService) {
+            const featureExtent = await getFeatureServiceExtent(item.fallbackFeatureService);
+            await focusOnExtent(view, featureExtent);
+            return;
+        }
+
         const existingLayers = existingLayersCollection.toArray() as FocusableCatalogLayer[];
-        focusOnLayers(view, existingLayers);
+        await focusOnLayers(view, existingLayers);
         return;
     }
 
