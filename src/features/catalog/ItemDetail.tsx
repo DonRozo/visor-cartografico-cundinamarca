@@ -1,24 +1,32 @@
 import React from 'react';
-import { ArcGISItem } from '../../types';
+import { ArcGISItem, LogicalDataset } from '../../types';
 import { PORTAL_URL } from '../../config/constants';
 
-// Definición de las propiedades que recibe el componente
 interface ItemDetailProps {
-    item: ArcGISItem;
-    gdbId?: string;
+    dataset: LogicalDataset;
+    legacyGdbId?: string;
     onBack: () => void;
     onAdd: (item: ArcGISItem) => void;
 }
 
 // Panel de metadatos y botones de acción.
-const ItemDetail: React.FC<ItemDetailProps> = ({ item, gdbId, onBack, onAdd }) => {
-    // Construcción de la URL de la miniatura con imagen por defecto como fallback
-    const thumbnailUrl = item.thumbnail 
-        ? `${PORTAL_URL}/sharing/rest/content/items/${item.id}/info/${item.thumbnail}` 
+const ItemDetail: React.FC<ItemDetailProps> = ({ dataset, legacyGdbId, onBack, onAdd }) => {
+    const preferredMapResource = dataset.vectorTile || dataset.featureService;
+    const mapItem = preferredMapResource && dataset.vectorTile && dataset.featureService
+        ? { ...preferredMapResource, fallbackFeatureService: dataset.featureService }
+        : preferredMapResource;
+    const gdbId = dataset.fileGeodatabase?.id || legacyGdbId;
+    const thumbnailItem = dataset.featureService?.thumbnail
+        ? dataset.featureService
+        : dataset.vectorTile?.thumbnail
+            ? dataset.vectorTile
+            : dataset.fileGeodatabase;
+
+    const thumbnailUrl = dataset.thumbnail && thumbnailItem
+        ? `${PORTAL_URL}/sharing/rest/content/items/${thumbnailItem.id}/info/${dataset.thumbnail}`
         : `${PORTAL_URL}/home/images/shared/bb_results-no-preview.png`;
 
-    // Determinamos el contenido de la descripción respetando la prioridad exigida
-    const descriptionContent = item.description || item.snippet || "No hay descripción disponible.";
+    const descriptionContent = dataset.description || dataset.snippet || "No hay descripción disponible.";
 
     const buildGdbDownloadUrl = (gdbItemId: string): string =>
         `${PORTAL_URL}/sharing/rest/content/items/${encodeURIComponent(gdbItemId)}/data`;
@@ -38,23 +46,21 @@ const ItemDetail: React.FC<ItemDetailProps> = ({ item, gdbId, onBack, onAdd }) =
 
     return (
         <div id="detail-pane" style={{ display: 'block' }}>
-            <img src={thumbnailUrl} alt={item.title} className="detail-thumbnail" />
-            <h3>{item.title}</h3>
+            <img src={thumbnailUrl} alt={dataset.title} className="detail-thumbnail" />
+            <h3>{dataset.title}</h3>
             
-            {/* [CORRECCIÓN] Usamos 'dangerouslySetInnerHTML' para renderizar el HTML crudo
-              proveniente de ArcGIS Online. Usamos un <div> en lugar de <p> porque la 
-              descripción podría contener etiquetas de bloque (como tablas o listas) que 
-              son inválidas dentro de un párrafo.
-            */}
+            {/* La descripción de ArcGIS Online puede incluir HTML con etiquetas de bloque. */}
             <div 
                 className="detail-description" 
                 dangerouslySetInnerHTML={{ __html: descriptionContent }}
             />
             
             <div className="metadata-buttons">
-                <button type="button" className="pill-button" onClick={() => onAdd(item)}>
-                    Añadir al Mapa
-                </button>
+                {mapItem && (
+                    <button type="button" className="pill-button" onClick={() => onAdd(mapItem)}>
+                        Añadir al Mapa
+                    </button>
+                )}
                 
                 {gdbId && (
                     <button type="button" className="pill-button" onClick={handleDownloadGdb}>

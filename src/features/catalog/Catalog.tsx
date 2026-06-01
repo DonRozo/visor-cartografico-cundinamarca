@@ -17,109 +17,81 @@ const normalizeText = (text?: string): string => {
     return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 };
 
-// Función auxiliar para mapear un LogicalDataset a un ArcGISItem de visualización.
-// Priorizamos Vector Tile para mapa y conservamos Feature Service como fallback.
-const mapLogicalDatasetToItem = (ld: LogicalDataset): ArcGISItem | null => {
-    const preferredMapResource = ld.vectorTile || ld.featureService;
-    if (!preferredMapResource) return null;
-
-    return {
-        id: preferredMapResource.id,
-        title: ld.title, // Usamos el título consolidado y limpio sin sufijos
-        type: preferredMapResource.type,
-        url: preferredMapResource.url,
-        thumbnail: ld.thumbnail,
-        snippet: ld.snippet,
-        description: ld.description,
-        fallbackFeatureService: ld.vectorTile && ld.featureService ? ld.featureService : undefined
-    };
-};
+// Mantiene compatibilidad con respuestas legacy que solo incluyan Feature Services.
+const mapLegacyItemToLogicalDataset = (item: ArcGISItem): LogicalDataset => ({
+    baseId: item.id,
+    title: item.title,
+    thumbnail: item.thumbnail,
+    snippet: item.snippet,
+    description: item.description,
+    featureService: item
+});
 
 // Orquestador del panel lateral con manejo de estados visuales y búsqueda avanzada
 const Catalog: React.FC<CatalogProps> = ({ data, isLoading, hasError, onAddLayerToMap }) => {
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedItem, setSelectedItem] = useState<ArcGISItem | null>(null);
+    const [selectedDataset, setSelectedDataset] = useState<LogicalDataset | null>(null);
 
-    // Determinamos la fuente de datos unificada de forma progresiva.
-    // Si existen datasets lógicos los usamos, sino usamos la estructura legacy.
-    const sourceItems = useMemo(() => {
+    // Si existen datasets lógicos los usamos; si no, conservamos la estructura legacy.
+    const sourceDatasets = useMemo(() => {
         if (data.logicalDatasets && data.logicalDatasets.length > 0) {
-            return data.logicalDatasets
-                .map(mapLogicalDatasetToItem)
-                // Eliminamos los nulos (datasets sin recurso visualizable)
-                .filter((item): item is ArcGISItem => item !== null);
+            return data.logicalDatasets.filter(dataset => dataset.vectorTile || dataset.featureService);
         }
-        // Fallback robusto a la estructura original si la nueva no viene en los datos
-        return data.featureServices || [];
+        return (data.featureServices || []).map(mapLegacyItemToLogicalDataset);
     }, [data.logicalDatasets, data.featureServices]);
 
-    // [CORRECCIÓN QUIRÚRGICA] Filtra dinámicamente controlando el ruido en términos cortos
-    const filteredItems = useMemo(() => {
-        if (!searchTerm) return sourceItems;
+    // Filtra dinámicamente controlando el ruido en términos cortos.
+    const filteredDatasets = useMemo(() => {
+        if (!searchTerm) return sourceDatasets;
         
         const normalizedSearchTerm = normalizeText(searchTerm.trim());
         const cleanSearchTerm = normalizedSearchTerm.replace(/[\s_\-]+/g, ' ');
         const isShortSearch = normalizedSearchTerm.length <= 2;
 
-        return sourceItems.filter(item => {
-            const normalizedTitle = normalizeText(item.title);
-            
-            // --- 1. MEJORA DE COINCIDENCIA EN NOMBRES TÉCNICOS (TITLE) ---
-            // Separamos por espacios, guiones o guiones bajos
+        return sourceDatasets.filter(dataset => {
+            const normalizedTitle = normalizeText(dataset.title);
             const titleWords = normalizedTitle.split(/[\s_\-]+/);
-            
-            // A) Coincidencia por prefijo (ej: "ad" encuentra "admin")
             const matchesPrefix = titleWords.some(word => word.startsWith(normalizedSearchTerm));
-            
-            // B) Coincidencia general reemplazando separadores técnicos por espacios
             const cleanTitle = normalizedTitle.replace(/[\s_\-]+/g, ' ');
             const matchesSubstring = cleanTitle.includes(cleanSearchTerm);
-            
             const matchesTitle = matchesPrefix || matchesSubstring;
 
-            // --- 2. REGLA PARA BÚSQUEDAS CORTAS (1 a 2 caracteres) ---
             if (isShortSearch) {
-                // Solo buscamos en el título para evitar el ruido enorme de las descripciones
                 return matchesTitle;
             }
 
-            // --- 3. REGLA PARA BÚSQUEDAS LARGAS (3 o más caracteres) ---
-            const normalizedSnippet = normalizeText(item.snippet);
-            const normalizedDescription = normalizeText(item.description);
+            const normalizedSnippet = normalizeText(dataset.snippet);
+            const normalizedDescription = normalizeText(dataset.description);
 
             return matchesTitle || 
                    normalizedSnippet.includes(normalizedSearchTerm) || 
                    normalizedDescription.includes(normalizedSearchTerm);
         });
-    }, [searchTerm, sourceItems]);
+    }, [searchTerm, sourceDatasets]);
 
     return (
         <div id="sidebar">
             <h2>Búsqueda de Información</h2>
             
-            {/* ESTADO 1: Cargando el catálogo */}
             {isLoading && (
                 <div className="status-message loading">
                     Cargando catálogo cartográfico...
                 </div>
             )}
             
-            {/* ESTADO 2: Error al obtener los datos */}
             {hasError && !isLoading && (
                 <div className="status-message error">
                     Error al conectar con ArcGIS Online. Por favor, recarga la página.
                 </div>
             )}
 
-            {/* ESTADO 3: Catálogo vacío (la petición fue exitosa pero no hay elementos) */}
-            {!isLoading && !hasError && sourceItems.length === 0 && (
+            {!isLoading && !hasError && sourceDatasets.length === 0 && (
                 <div className="status-message empty">
                     No se encontraron servicios en el catálogo.
                 </div>
             )}
 
-            {/* VISTA PRINCIPAL: Muestra la barra de búsqueda y las tarjetas */}
-            {!isLoading && !hasError && sourceItems.length > 0 && !selectedItem && (
+            {!isLoading && !hasError && sourceDatasets.length > 0 && !selectedDataset && (
                 <>
                     <input 
                         type="text" 
@@ -129,17 +101,16 @@ const Catalog: React.FC<CatalogProps> = ({ data, isLoading, hasError, onAddLayer
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                     <div id="card-container">
-                        {/* ESTADO 4: Búsqueda sin resultados */}
-                        {filteredItems.length === 0 ? (
+                        {filteredDatasets.length === 0 ? (
                              <div className="status-message empty">
                                  No hay resultados para esta búsqueda.
                              </div>
                         ) : (
-                            filteredItems.map(item => (
+                            filteredDatasets.map(dataset => (
                                 <ItemCard 
-                                    key={item.id} 
-                                    item={item} 
-                                    onClick={setSelectedItem} 
+                                    key={dataset.baseId}
+                                    dataset={dataset}
+                                    onClick={setSelectedDataset}
                                 />
                             ))
                         )}
@@ -147,13 +118,11 @@ const Catalog: React.FC<CatalogProps> = ({ data, isLoading, hasError, onAddLayer
                 </>
             )}
 
-            {/* VISTA DE DETALLE: Muestra la información extendida del elemento seleccionado */}
-            {!isLoading && selectedItem && (
+            {!isLoading && selectedDataset && (
                 <ItemDetail 
-                    item={selectedItem} 
-                    // El título aquí ya está limpio y coincide con la llave en gdbIdLookup
-                    gdbId={data.gdbIdLookup.get(selectedItem.title)} 
-                    onBack={() => setSelectedItem(null)} 
+                    dataset={selectedDataset}
+                    legacyGdbId={data.logicalDatasets?.length ? undefined : data.gdbIdLookup.get(selectedDataset.title)}
+                    onBack={() => setSelectedDataset(null)}
                     onAdd={onAddLayerToMap} 
                 />
             )}
