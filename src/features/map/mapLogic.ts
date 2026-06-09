@@ -346,7 +346,7 @@ async function getFeatureServiceExtent(item: ArcGISItem): Promise<Extent | null>
 async function addFeatureServiceToMap(map: WebMap, view: MapView, item: ArcGISItem, groupId: string = item.id) {
     try {
         const layersToAdd = await createFeatureLayersFromService(item, groupId);
-        map.addMany(layersToAdd);
+        map.addMany([...layersToAdd].reverse());
         await focusOnLayers(view, layersToAdd);
     } catch (err) {
         console.error("Error al anadir la capa:", err);
