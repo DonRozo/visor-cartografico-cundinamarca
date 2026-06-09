@@ -3,6 +3,7 @@ import MapView from "@arcgis/core/views/MapView";
 import esriRequest from "@arcgis/core/request";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 import VectorTileLayer from "@arcgis/core/layers/VectorTileLayer";
+import GroupLayer from "@arcgis/core/layers/GroupLayer";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
 import GeoJSONLayer from "@arcgis/core/layers/GeoJSONLayer";
 import Extent from "@arcgis/core/geometry/Extent";
@@ -308,6 +309,20 @@ async function focusOnLayers(view: MapView, layers: FocusableCatalogLayer[]) {
     }
 }
 
+function getFocusableLayersFromCatalogLayer(layer: __esri.Layer): FocusableCatalogLayer[] {
+    if (layer.type === "group") {
+        return (layer as GroupLayer).layers
+            .toArray()
+            .filter((sublayer): sublayer is FeatureLayer => sublayer.type === "feature");
+    }
+
+    if (layer.type === "feature" || layer.type === "vector-tile") {
+        return [layer as FocusableCatalogLayer];
+    }
+
+    return [];
+}
+
 async function createFeatureLayersFromService(item: ArcGISItem, groupId: string = item.id): Promise<FeatureLayer[]> {
     const serviceInfo = await esriRequest(item.url, { query: { f: "json" }, responseType: "json" });
     const serviceLayers = serviceInfo.data.layers as ServiceLayerInfo[] | undefined;
@@ -346,7 +361,17 @@ async function getFeatureServiceExtent(item: ArcGISItem): Promise<Extent | null>
 async function addFeatureServiceToMap(map: WebMap, view: MapView, item: ArcGISItem, groupId: string = item.id) {
     try {
         const layersToAdd = await createFeatureLayersFromService(item, groupId);
-        map.addMany([...layersToAdd].reverse());
+        if (layersToAdd.length > 1) {
+            const groupLayer = new GroupLayer({
+                id: groupId,
+                title: item.title,
+                layers: [...layersToAdd].reverse()
+            });
+            (groupLayer as CatalogLayerWithGroup).groupId = groupId;
+            map.add(groupLayer);
+        } else {
+            map.add(layersToAdd[0]);
+        }
         await focusOnLayers(view, layersToAdd);
     } catch (err) {
         console.error("Error al anadir la capa:", err);
@@ -395,7 +420,9 @@ export async function addLayerToMap(map: WebMap, view: MapView, item: ArcGISItem
             return;
         }
 
-        const existingLayers = existingLayersCollection.toArray() as FocusableCatalogLayer[];
+        const existingLayers = existingLayersCollection
+            .toArray()
+            .flatMap(getFocusableLayersFromCatalogLayer);
         await focusOnLayers(view, existingLayers);
         return;
     }
