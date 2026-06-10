@@ -28,6 +28,17 @@ interface ServiceLayerInfo {
 type CatalogLayerWithGroup = __esri.Layer & { groupId?: string };
 type FocusableCatalogLayer = FeatureLayer | VectorTileLayer;
 
+interface PrintServiceMetadata {
+    name?: string;
+    displayName?: string;
+    executionType?: string;
+    parameters?: unknown[];
+    error?: {
+        code?: number;
+        message?: string;
+    };
+}
+
 const WORLD_GEOGRAPHIC_WIDTH = 300;
 const WORLD_GEOGRAPHIC_HEIGHT = 140;
 const WORLD_WEB_MERCATOR_WIDTH = 35000000;
@@ -94,7 +105,6 @@ export function initializeMap(container: HTMLDivElement): {
 
     // 5. Creacion de widgets en memoria (SIN anadirlos a view.ui)
     const basemapGallery = new BasemapGallery({ view: view });
-    const print = new Print({ view: view, printServiceUrl: PRINT_SERVICE_URL });
     const measurement = new Measurement({ view: view });
     const layerList = new LayerList({ view: view });
     const legend = new Legend({ view: view });
@@ -105,7 +115,7 @@ export function initializeMap(container: HTMLDivElement): {
     });
 
     // Empaquetamos los widgets para enviarlos a React
-    const widgets: MapWidgets = { layerList, legend, basemapGallery, print, measurement, sketch };
+    const widgets: MapWidgets = { layerList, legend, basemapGallery, measurement, sketch };
 
     // 6. Logica Robusta de Historial de Zoom (Zoom Pre)
     let extentHistory: Extent[] = [];
@@ -141,6 +151,86 @@ export function initializeMap(container: HTMLDivElement): {
     };
 
     return { map, view, widgets, zoomPre, zoomHome };
+}
+
+function getSafePrintServiceDiagnostic(url: string): string {
+    try {
+        const parsedUrl = new URL(url);
+        return parsedUrl.hostname;
+    } catch {
+        return "URL no valida";
+    }
+}
+
+function hasValidPrintServiceMetadata(data: PrintServiceMetadata): boolean {
+    if (!data || data.error) return false;
+
+    return Boolean(
+        data.name ||
+        data.displayName ||
+        data.executionType ||
+        (Array.isArray(data.parameters) && data.parameters.length > 0)
+    );
+}
+
+function getSafeErrorDiagnostic(error: unknown): { name?: string; message?: string } {
+    if (error instanceof Error) {
+        return {
+            name: error.name,
+            message: error.message
+        };
+    }
+
+    return {
+        message: String(error)
+    };
+}
+
+export async function createValidatedPrintWidget(
+    view: MapView,
+    container: HTMLDivElement
+): Promise<Print | null> {
+    const printServiceUrl = PRINT_SERVICE_URL.trim();
+
+    if (!printServiceUrl) {
+        console.warn("[Print] Servicio de impresion no configurado.");
+        return null;
+    }
+
+    try {
+        const response = await esriRequest(printServiceUrl, {
+            query: { f: "json" },
+            responseType: "json"
+        });
+        const metadata = response.data as PrintServiceMetadata;
+
+        if (!hasValidPrintServiceMetadata(metadata)) {
+            const serviceError = metadata?.error;
+            console.warn("[Print] El servicio de impresion respondio sin metadatos validos.", {
+                service: getSafePrintServiceDiagnostic(printServiceUrl),
+                code: serviceError?.code,
+                message: serviceError?.message
+            });
+            return null;
+        }
+
+        console.info("[Print] Servicio de impresion validado.", {
+            service: getSafePrintServiceDiagnostic(printServiceUrl),
+            executionType: metadata.executionType
+        });
+
+        return new Print({
+            view,
+            container,
+            printServiceUrl
+        });
+    } catch (error) {
+        console.warn("[Print] No se pudo validar el servicio de impresion.", {
+            service: getSafePrintServiceDiagnostic(printServiceUrl),
+            error: getSafeErrorDiagnostic(error)
+        });
+        return null;
+    }
 }
 
 // Funcion para manejar GeoJSON local

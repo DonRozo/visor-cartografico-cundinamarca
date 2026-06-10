@@ -11,5 +11,5 @@ export const OPEN_DATA_URL_BASE = "https://mapasyestadisticas-cundinamarca-map.o
 // [CORRECCIÓN] Web Map ID obligatorio aprobado por dirección
 export const WEB_MAP_ID = "ed8ef9d27ef5444ead4b4d5ba2aacc6b";
 
-// Servicio de impresión estándar (puede venir de variables de entorno para mayor seguridad)
-export const PRINT_SERVICE_URL = import.meta.env.VITE_PRINT_SERVICE_URL || "https://utility.arcgisonline.com/arcgis/rest/services/Utilities/PrintingTools/GPServer/Export%20Web%20Map%20Task";
+// Servicio de impresion estandar. Se valida antes de montar el widget Print.
+export const PRINT_SERVICE_URL = (import.meta.env.VITE_PRINT_SERVICE_URL || "https://utility.arcgisonline.com/arcgis/rest/services/Utilities/PrintingTools/GPServer/Export%20Web%20Map%20Task").trim();

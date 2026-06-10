@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { initializeMap, addLayerToMap, addLocalGeoJSON } from './mapLogic';
+import { initializeMap, addLayerToMap, addLocalGeoJSON, createValidatedPrintWidget } from './mapLogic';
 import { LayerTrigger, MapWidgets } from '../../types';
 import WebMap from "@arcgis/core/WebMap";
 import MapView from "@arcgis/core/views/MapView";
@@ -30,11 +30,13 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
     const [zoomPreFn, setZoomPreFn] = useState<() => void>(() => {});
     const [zoomHomeFn, setZoomHomeFn] = useState<() => void>(() => {});
     const [shareMessage, setShareMessage] = useState<string>("");
+    const [printError, setPrintError] = useState<string>("");
 
     useEffect(() => {
         let resizeObserver: ResizeObserver | null = null;
         let stabilityTimeout: ReturnType<typeof setTimeout> | null = null;
         let isInitialized = false;
+        let isMounted = true;
 
         const attemptInitialization = () => {
             if (!mapDiv.current || isInitialized) return;
@@ -55,7 +57,24 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                 if (layerListRef.current) widgets.layerList.container = layerListRef.current;
                 if (legendRef.current) widgets.legend.container = legendRef.current;
                 if (basemapRef.current) widgets.basemapGallery.container = basemapRef.current;
-                if (printRef.current && PRINT_SERVICE_URL) widgets.print.container = printRef.current;
+                if (printRef.current && PRINT_SERVICE_URL.trim()) {
+                    createValidatedPrintWidget(view, printRef.current).then((printWidget) => {
+                        if (!isMounted) {
+                            printWidget?.destroy();
+                            return;
+                        }
+
+                        if (printWidget) {
+                            widgets.print = printWidget;
+                            setPrintError("");
+                            return;
+                        }
+
+                        setPrintError("Servicio de impresion no disponible en este momento.");
+                    });
+                } else {
+                    setPrintError("Servicio de impresion no configurado.");
+                }
                 if (sketchRef.current) widgets.sketch.container = sketchRef.current;
                 if (measureRef.current) widgets.measurement.container = measureRef.current;
 
@@ -83,6 +102,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
         }
         
         return () => {
+            isMounted = false;
             if (stabilityTimeout) {
                 clearTimeout(stabilityTimeout);
             }
@@ -188,7 +208,8 @@ const MapComponent: React.FC<MapComponentProps> = ({ layerTrigger }) => {
                 <h3>Herramientas</h3>
                 <div className="tool-section">
                     <h4>Imprimir Mapa</h4>
-                    {PRINT_SERVICE_URL ? <div ref={printRef}></div> : <p className="panel-msg">Servicio de impresión no configurado.</p>}
+                    {PRINT_SERVICE_URL.trim() ? <div ref={printRef}></div> : null}
+                    {printError && <p className="panel-msg">{printError}</p>}
                 </div>
                 <div className="tool-section">
                     <h4>Importar Datos (GeoJSON)</h4>

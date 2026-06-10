@@ -52,7 +52,7 @@ export interface MapWidgets {
     layerList: __esri.LayerList;
     legend: __esri.Legend;
     basemapGallery: __esri.BasemapGallery;
-    print: __esri.Print;
+    print?: __esri.Print;
     measurement: __esri.Measurement;
     sketch: __esri.Sketch;
 }

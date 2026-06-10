@@ -4,6 +4,7 @@
 interface ImportMetaEnv {
   readonly VITE_ARCGIS_PORTAL_URL: string;
   readonly VITE_GROUP_ID: string;
+  readonly VITE_PRINT_SERVICE_URL?: string;
 }
 
 interface ImportMeta {
