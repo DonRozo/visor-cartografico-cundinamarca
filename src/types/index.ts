@@ -32,10 +32,14 @@ export type ResourceType = "Feature Service" | "Vector Tile Service" | "File Geo
 
 export interface LogicalDataset {
     baseId: string;
+    datasetKey?: string;
     title: string;
     snippet?: string;
     description?: string;
     thumbnail?: string;
+    municipio?: string;
+    escala?: string;
+    anio?: string;
     featureService?: ArcGISItem;
     vectorTile?: ArcGISItem;
     fileGeodatabase?: ArcGISItem;

@@ -23,7 +23,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ dataset, onClick }) => {
         <div className="card" onClick={() => onClick(dataset)}>
             <div className="card-inner">
                 <div className="card-front">
-                    <img src={thumbnailUrl} alt={dataset.title} />
+                    <img src={thumbnailUrl} alt={dataset.title} loading="lazy" />
                     <div className="card-title">{dataset.title}</div>
                 </div>
                 <div className="card-back">

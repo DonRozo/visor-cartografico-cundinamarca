@@ -191,6 +191,31 @@ html, body, #root {
   background-color: #ffffff;
 }
 
+.catalog-filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.catalog-filters select {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #334155;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.catalog-filters select:focus {
+  outline: none;
+  border-color: #134174;
+  box-shadow: 0 0 0 3px rgba(19, 65, 116, 0.1);
+}
+
 .status-message {
   padding: 15px;
   border-radius: 6px;

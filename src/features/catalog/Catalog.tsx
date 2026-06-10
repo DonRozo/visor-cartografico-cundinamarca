@@ -3,7 +3,6 @@ import ItemCard from './ItemCard';
 import ItemDetail from './ItemDetail';
 import { CatalogData, ArcGISItem, LogicalDataset } from '../../types';
 
-// Definición estricta de las props que recibe desde App.tsx
 interface CatalogProps {
     data: CatalogData;
     isLoading: boolean;
@@ -11,28 +10,55 @@ interface CatalogProps {
     onAddLayerToMap: (item: ArcGISItem) => void;
 }
 
-// Función auxiliar nativa para normalizar texto: pasa a minúsculas y elimina tildes/diacríticos
+interface SearchableDataset {
+    dataset: LogicalDataset;
+    normalizedTitle: string;
+    normalizedSnippet: string;
+    normalizedDescription: string;
+}
+
+const UNCLASSIFIED_VALUE = "Sin clasificar";
+const ALL_VALUE = "";
+
 const normalizeText = (text?: string): string => {
     if (!text) return "";
     return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 };
 
-// Mantiene compatibilidad con respuestas legacy que solo incluyan Feature Services.
 const mapLegacyItemToLogicalDataset = (item: ArcGISItem): LogicalDataset => ({
     baseId: item.id,
+    datasetKey: item.id,
     title: item.title,
+    municipio: UNCLASSIFIED_VALUE,
+    escala: UNCLASSIFIED_VALUE,
+    anio: UNCLASSIFIED_VALUE,
     thumbnail: item.thumbnail,
     snippet: item.snippet,
     description: item.description,
     featureService: item
 });
 
-// Orquestador del panel lateral con manejo de estados visuales y búsqueda avanzada
+const sortFilterValues = (values: string[]): string[] =>
+    values.sort((left, right) => {
+        if (left === UNCLASSIFIED_VALUE) return 1;
+        if (right === UNCLASSIFIED_VALUE) return -1;
+        return left.localeCompare(right, 'es', { numeric: true, sensitivity: 'base' });
+    });
+
+const getUniqueFilterValues = (
+    datasets: LogicalDataset[],
+    field: 'municipio' | 'escala' | 'anio'
+): string[] => sortFilterValues(Array.from(new Set(
+    datasets.map(dataset => dataset[field] || UNCLASSIFIED_VALUE)
+)));
+
 const Catalog: React.FC<CatalogProps> = ({ data, isLoading, hasError, onAddLayerToMap }) => {
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedMunicipality, setSelectedMunicipality] = useState(ALL_VALUE);
+    const [selectedScale, setSelectedScale] = useState(ALL_VALUE);
+    const [selectedYear, setSelectedYear] = useState(ALL_VALUE);
     const [selectedDataset, setSelectedDataset] = useState<LogicalDataset | null>(null);
 
-    // Si existen datasets lógicos los usamos; si no, conservamos la estructura legacy.
     const sourceDatasets = useMemo(() => {
         if (data.logicalDatasets && data.logicalDatasets.length > 0) {
             return data.logicalDatasets.filter(dataset => dataset.vectorTile || dataset.featureService);
@@ -40,45 +66,74 @@ const Catalog: React.FC<CatalogProps> = ({ data, isLoading, hasError, onAddLayer
         return (data.featureServices || []).map(mapLegacyItemToLogicalDataset);
     }, [data.logicalDatasets, data.featureServices]);
 
-    // Filtra dinámicamente controlando el ruido en términos cortos.
+    const searchableDatasets = useMemo<SearchableDataset[]>(() =>
+        sourceDatasets.map(dataset => ({
+            dataset,
+            normalizedTitle: normalizeText(dataset.title),
+            normalizedSnippet: normalizeText(dataset.snippet),
+            normalizedDescription: normalizeText(dataset.description)
+        })), [sourceDatasets]);
+
+    const municipalityOptions = useMemo(() =>
+        getUniqueFilterValues(sourceDatasets, 'municipio'), [sourceDatasets]);
+    const scaleOptions = useMemo(() =>
+        getUniqueFilterValues(sourceDatasets, 'escala'), [sourceDatasets]);
+    const yearOptions = useMemo(() =>
+        getUniqueFilterValues(sourceDatasets, 'anio'), [sourceDatasets]);
+
     const filteredDatasets = useMemo(() => {
-        if (!searchTerm) return sourceDatasets;
-        
         const normalizedSearchTerm = normalizeText(searchTerm.trim());
         const cleanSearchTerm = normalizedSearchTerm.replace(/[\s_\-]+/g, ' ');
         const isShortSearch = normalizedSearchTerm.length <= 2;
 
-        return sourceDatasets.filter(dataset => {
-            const normalizedTitle = normalizeText(dataset.title);
-            const titleWords = normalizedTitle.split(/[\s_\-]+/);
-            const matchesPrefix = titleWords.some(word => word.startsWith(normalizedSearchTerm));
-            const cleanTitle = normalizedTitle.replace(/[\s_\-]+/g, ' ');
-            const matchesSubstring = cleanTitle.includes(cleanSearchTerm);
-            const matchesTitle = matchesPrefix || matchesSubstring;
+        return searchableDatasets
+            .filter(({ dataset }) => {
+                const matchesMunicipality = !selectedMunicipality || dataset.municipio === selectedMunicipality;
+                const matchesScale = !selectedScale || dataset.escala === selectedScale;
+                const matchesYear = !selectedYear || dataset.anio === selectedYear;
+                return matchesMunicipality && matchesScale && matchesYear;
+            })
+            .filter(({ dataset, normalizedTitle, normalizedSnippet, normalizedDescription }) => {
+                if (!normalizedSearchTerm) return true;
 
-            if (isShortSearch) {
-                return matchesTitle;
-            }
+                const titleWords = normalizedTitle.split(/[\s_\-]+/);
+                const matchesPrefix = titleWords.some(word => word.startsWith(normalizedSearchTerm));
+                const cleanTitle = normalizedTitle.replace(/[\s_\-]+/g, ' ');
+                const matchesSubstring = cleanTitle.includes(cleanSearchTerm);
+                const matchesTitle = matchesPrefix || matchesSubstring;
 
-            const normalizedSnippet = normalizeText(dataset.snippet);
-            const normalizedDescription = normalizeText(dataset.description);
+                if (isShortSearch) {
+                    return matchesTitle;
+                }
 
-            return matchesTitle || 
-                   normalizedSnippet.includes(normalizedSearchTerm) || 
-                   normalizedDescription.includes(normalizedSearchTerm);
-        });
-    }, [searchTerm, sourceDatasets]);
+                const normalizedMetadata = normalizeText([
+                    dataset.municipio,
+                    dataset.escala,
+                    dataset.anio
+                ].filter(Boolean).join(" "));
+
+                return matchesTitle ||
+                    normalizedSnippet.includes(normalizedSearchTerm) ||
+                    normalizedDescription.includes(normalizedSearchTerm) ||
+                    normalizedMetadata.includes(normalizedSearchTerm);
+            })
+            .map(({ dataset }) => dataset);
+    }, [searchTerm, searchableDatasets, selectedMunicipality, selectedScale, selectedYear]);
+
+    const handleDatasetSelect = (dataset: LogicalDataset): void => {
+        setSelectedDataset(dataset);
+    };
 
     return (
         <div id="sidebar">
             <h2>Búsqueda de Información</h2>
-            
+
             {isLoading && (
                 <div className="status-message loading">
                     Cargando catálogo cartográfico...
                 </div>
             )}
-            
+
             {hasError && !isLoading && (
                 <div className="status-message error">
                     Error al conectar con ArcGIS Online. Por favor, recarga la página.
@@ -93,24 +148,60 @@ const Catalog: React.FC<CatalogProps> = ({ data, isLoading, hasError, onAddLayer
 
             {!isLoading && !hasError && sourceDatasets.length > 0 && !selectedDataset && (
                 <>
-                    <input 
-                        type="text" 
-                        id="search-input" 
-                        placeholder="Buscar por palabra clave..." 
+                    <input
+                        type="text"
+                        id="search-input"
+                        placeholder="Buscar por palabra clave..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(event) => setSearchTerm(event.target.value)}
                     />
+
+                    <div className="catalog-filters">
+                        <select
+                            aria-label="Filtrar por municipio"
+                            value={selectedMunicipality}
+                            onChange={(event) => setSelectedMunicipality(event.target.value)}
+                        >
+                            <option value={ALL_VALUE}>Todos los municipios</option>
+                            {municipalityOptions.map(municipality => (
+                                <option key={municipality} value={municipality}>{municipality}</option>
+                            ))}
+                        </select>
+
+                        <select
+                            aria-label="Filtrar por escala"
+                            value={selectedScale}
+                            onChange={(event) => setSelectedScale(event.target.value)}
+                        >
+                            <option value={ALL_VALUE}>Todas las escalas</option>
+                            {scaleOptions.map(scale => (
+                                <option key={scale} value={scale}>{scale}</option>
+                            ))}
+                        </select>
+
+                        <select
+                            aria-label="Filtrar por año"
+                            value={selectedYear}
+                            onChange={(event) => setSelectedYear(event.target.value)}
+                        >
+                            <option value={ALL_VALUE}>Todos los años</option>
+                            {yearOptions.map(year => (
+                                <option key={year} value={year}>{year}</option>
+                            ))}
+                        </select>
+                    </div>
+
                     <div id="card-container">
                         {filteredDatasets.length === 0 ? (
-                             <div className="status-message empty">
-                                 No hay resultados para esta búsqueda.
-                             </div>
+                            <div className="status-message empty">
+                                No hay resultados para esta búsqueda.
+                            </div>
                         ) : (
                             filteredDatasets.map(dataset => (
-                                <ItemCard 
+                                <ItemCard
                                     key={dataset.baseId}
                                     dataset={dataset}
-                                    onClick={setSelectedDataset}
+                                    onClick={handleDatasetSelect}
                                 />
                             ))
                         )}
@@ -119,11 +210,11 @@ const Catalog: React.FC<CatalogProps> = ({ data, isLoading, hasError, onAddLayer
             )}
 
             {!isLoading && selectedDataset && (
-                <ItemDetail 
+                <ItemDetail
                     dataset={selectedDataset}
                     legacyGdbId={data.logicalDatasets?.length ? undefined : data.gdbIdLookup.get(selectedDataset.title)}
                     onBack={() => setSelectedDataset(null)}
-                    onAdd={onAddLayerToMap} 
+                    onAdd={onAddLayerToMap}
                 />
             )}
         </div>
