@@ -7,6 +7,7 @@ export interface ArcGISItem {
     thumbnail?: string;
     snippet?: string;
     description?: string;
+    tags?: string[];
     url: string;
     fallbackFeatureService?: ArcGISItem;
 }
@@ -33,6 +34,7 @@ export type ResourceType = "Feature Service" | "Vector Tile Service" | "File Geo
 export interface LogicalDataset {
     baseId: string;
     datasetKey?: string;
+    associationSource?: "tag" | "title";
     title: string;
     snippet?: string;
     description?: string;
